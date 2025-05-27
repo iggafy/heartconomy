@@ -64,16 +64,11 @@ export const Home = () => {
           </div>
           
           <h1 className="text-7xl md:text-8xl font-black bg-gradient-to-r from-white via-red-200 to-white bg-clip-text text-transparent mb-6 leading-tight">
-            Heartconomy
+            Heartconomy — <span className="italic">Die for the like.</span>
           </h1>
           
-          <p className="text-2xl md:text-3xl text-gray-300 italic font-light mb-8">
-            Die for the like.
-          </p>
-          
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            The first social network where your attention becomes currency. 
-            Turn hearts into influence, engagement into wealth.
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+            Where every like costs a heartbeat, and social survival depends on your generosity.
           </p>
         </div>
 
@@ -108,78 +103,88 @@ export const Home = () => {
         </div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 w-full max-w-6xl">
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 hover:border-white/20 transition-all duration-500 group hover:scale-[1.02]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16 w-full max-w-7xl">
+          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 hover:border-white/20 transition-all duration-500 group hover:scale-[1.02] lg:col-span-3">
             <div className="flex items-center mb-6">
               <div className="bg-gradient-to-r from-red-500 to-pink-600 p-3 rounded-xl mr-4">
                 <Heart className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-white">Social Currency</h3>
+              <h3 className="text-2xl font-bold text-white">What is Heartconomy?</h3>
             </div>
-            <p className="text-gray-300 leading-relaxed mb-4">
-              Transform your engagement into real social capital. Every like, comment, and share 
-              becomes part of your digital wealth portfolio.
+            <p className="text-gray-300 leading-relaxed text-lg">
+              Welcome to the first social network that turns your attention into currency. Start with 100 Hearts — spend them wisely on likes and comments, earn more by creating content that others love, or risk fading into social death.
             </p>
-            <div className="flex items-center text-red-400 group-hover:text-red-300 transition-colors">
-              <span className="text-sm font-medium">Learn more</span>
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 hover:border-white/20 transition-all duration-500 group hover:scale-[1.02]">
+          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 hover:border-white/20 transition-all duration-500 group hover:scale-[1.02] lg:col-span-2">
             <div className="flex items-center mb-6">
-              <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-3 rounded-xl mr-4">
-                <MessageCircle className="w-6 h-6 text-white" />
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-xl mr-4">
+                <TrendingUp className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-white">Meaningful Connections</h3>
+              <h3 className="text-2xl font-bold text-white">How it Works</h3>
             </div>
-            <p className="text-gray-300 leading-relaxed mb-4">
-              Build authentic relationships through intentional engagement. When every interaction 
-              has value, conversations become more meaningful.
-            </p>
-            <div className="flex items-center text-purple-400 group-hover:text-purple-300 transition-colors">
-              <span className="text-sm font-medium">Discover how</span>
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            <div className="space-y-4 text-gray-300">
+              <div className="flex items-start">
+                <div className="bg-red-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>
+                  <span className="font-semibold text-white">100 Hearts to start:</span> Your social lifeblood.
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-red-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>
+                  <span className="font-semibold text-white">Spend Hearts to Like & Comment:</span> Likes cost 1 Heart, comments cost 5 Hearts.
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-red-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>
+                  <span className="font-semibold text-white">Earn Hearts:</span> Get Hearts back when others like your posts.
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-red-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>
+                  <span className="font-semibold text-white">Social Death:</span> Reach 0 Hearts and you're locked out — until someone revives you by liking your latest post.
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 hover:border-white/20 transition-all duration-500 group hover:scale-[1.02]">
             <div className="flex items-center mb-6">
               <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-3 rounded-xl mr-4">
-                <TrendingUp className="w-6 h-6 text-white" />
+                <Users className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-white">Dynamic Growth</h3>
+              <h3 className="text-2xl font-bold text-white">Why Join Heartconomy?</h3>
             </div>
-            <p className="text-gray-300 leading-relaxed mb-4">
-              Watch your influence expand as you contribute value to the community. Your social 
-              wallet grows with genuine engagement and quality content.
-            </p>
-            <div className="flex items-center text-green-400 group-hover:text-green-300 transition-colors">
-              <span className="text-sm font-medium">Start growing</span>
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 hover:border-white/20 transition-all duration-500 group hover:scale-[1.02]">
-            <div className="flex items-center mb-6">
-              <div className="bg-gradient-to-r from-yellow-500 to-orange-600 p-3 rounded-xl mr-4">
-                <Zap className="w-6 h-6 text-white" />
+            <div className="space-y-4 text-gray-300">
+              <div className="flex items-start">
+                <div className="bg-green-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>Experience social media with real stakes</div>
               </div>
-              <h3 className="text-2xl font-bold text-white">Revolutionary Experience</h3>
-            </div>
-            <p className="text-gray-300 leading-relaxed mb-4">
-              Escape mindless scrolling forever. Every moment on Heartconomy is intentional, 
-              valuable, and designed to enrich your digital life.
-            </p>
-            <div className="flex items-center text-yellow-400 group-hover:text-yellow-300 transition-colors">
-              <span className="text-sm font-medium">Join revolution</span>
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              <div className="flex items-start">
+                <div className="bg-green-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>Meaningful interactions replace mindless scrolling</div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-green-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>Play the emotional economy game and watch your influence grow or fade</div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-green-500 w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <div>Join a community where every action counts</div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* CTA Section */}
         <div className="text-center">
+          <p className="text-2xl text-gray-300 mb-8 font-light">
+            Join Heartconomy now — spend your love wisely.
+          </p>
+          
           <button
             onClick={() => {
               animateHeart();
@@ -189,7 +194,7 @@ export const Home = () => {
           >
             <span className="relative z-10 flex items-center">
               <Heart className={`w-6 h-6 mr-3 ${isAnimating ? 'animate-bounce' : ''}`} fill="currentColor" />
-              Start Your Journey
+              Sign Up for Free
               <ArrowRight className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform" />
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-600 rounded-full blur-xl opacity-50 group-hover:opacity-70 transition-opacity"></div>
