@@ -183,7 +183,7 @@ export const Auth = () => {
 
           <div className="mt-6 text-center text-sm text-gray-600">
             <Heart className="w-4 h-4 inline text-red-500" />
-            <span className="ml-1">Join the heart economy and start with 100 hearts!</span>
+            <span className="ml-1">Join Heartconomy now — spend your love wisely.</span>
           </div>
         </div>
       </div>
