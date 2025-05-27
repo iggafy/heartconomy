@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Users, TrendingUp, Zap, ArrowRight } from 'lucide-react';
+import { Heart, MessageCircle, Users, TrendingUp, Zap, ArrowRight, Skull, Mail, ThumbsUp, Target, Gift } from 'lucide-react';
 
 export const Home = () => {
   const navigate = useNavigate();
