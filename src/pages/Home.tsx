@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Users, TrendingUp, Zap, ArrowRight, Skull } from 'lucide-react';
+import { Heart, MessageCircle, Users, TrendingUp, Zap, ArrowRight, Skull, Mail, ThumbsUp } from 'lucide-react';
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -32,31 +32,37 @@ export const Home = () => {
           </h1>
           
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-12">
-            Experience social media with real stakes. You start with 100 Hearts — your currency to like, comment, and survive.
+            Experience social media with real stakes. You start with 100 Hearts — your currency to post, like, comment, and survive.
           </p>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
             <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm">
-              <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-xl mb-6 mx-auto">
-                <Heart className="w-8 h-8 text-red-500" fill="currentColor" />
+              <div className="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-xl mb-6 mx-auto">
+                <Mail className="w-8 h-8 text-purple-500" />
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-3">100</div>
-              <div className="text-lg font-medium text-gray-700">Hearts to Start</div>
+              <div className="text-2xl font-bold text-gray-900 mb-3">Posting</div>
+              <div className="text-gray-700">
+                <span className="font-semibold">Posts</span> costs <span className="font-semibold">2 Hearts</span>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm">
+              <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-xl mb-6 mx-auto">
+                <ThumbsUp className="w-8 h-8 text-green-500" />
+              </div>
+              <div className="text-2xl font-bold text-gray-900 mb-3">Giving Likes</div>
+              <div className="text-gray-700">
+                <span className="font-semibold">Give someone a Like</span>, it costs <span className="font-semibold">1 Heart</span>
+              </div>
             </div>
             <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm">
               <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-xl mb-6 mx-auto">
                 <MessageCircle className="w-8 h-8 text-blue-500" />
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-3">5</div>
-              <div className="text-lg font-medium text-gray-700">Hearts per Comment</div>
-            </div>
-            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm">
-              <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-xl mb-6 mx-auto">
-                <Skull className="w-8 h-8 text-gray-600" />
+              <div className="text-2xl font-bold text-gray-900 mb-3">Leaving Comments</div>
+              <div className="text-gray-700">
+                <span className="font-semibold">Write a Comment</span>, it costs <span className="font-semibold">5 Hearts</span>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-3">0</div>
-              <div className="text-lg font-medium text-gray-700">Hearts = Social Death</div>
             </div>
           </div>
         </div>
@@ -72,7 +78,7 @@ export const Home = () => {
               <h2 className="text-2xl font-bold text-gray-900">What is Heartconomy?</h2>
             </div>
             <p className="text-gray-700 text-lg leading-relaxed">
-              Welcome to the first social network that turns your attention into currency. Start with 100 Hearts — spend them wisely on likes and comments, earn more by creating content that others love, or risk fading into social death.
+              Welcome to the first social network that turns your attention into currency. Start with 100 Hearts — spend them wisely on posts, likes, and comments, earn more by creating content that others love, or risk fading into social death.
             </p>
           </div>
 
@@ -95,8 +101,8 @@ export const Home = () => {
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0"></div>
                 <div>
-                  <span className="font-semibold text-gray-900">Spend Hearts to Like & Comment:</span>
-                  <span className="text-gray-700 ml-1">Likes cost 1 Heart, comments cost 5 Hearts.</span>
+                  <span className="font-semibold text-gray-900">Spend Hearts to Post, Like & Comment:</span>
+                  <span className="text-gray-700 ml-1">Posts costs 2 Hearts, Likes cost 1 Heart, comments cost 5 Hearts.</span>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
@@ -148,7 +154,7 @@ export const Home = () => {
         {/* CTA Section */}
         <div className="text-center bg-gray-50 rounded-3xl p-12 border border-gray-200">
           <p className="text-2xl text-gray-800 mb-8 font-medium">
-            Join Heartconomy now — spend your love wisely.
+            Join Heartconomy now!
           </p>
           
           <button
@@ -170,7 +176,7 @@ export const Home = () => {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Heart className="w-5 h-5 text-red-500" fill="currentColor" />
-            <span className="text-gray-600 text-sm">Spend your love wisely</span>
+            <span className="text-gray-600 text-sm">Heartconomy</span>
           </div>
         </div>
       </footer>
