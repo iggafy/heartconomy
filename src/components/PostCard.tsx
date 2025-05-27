@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Clock } from 'lucide-react';
-import { useUserStore } from '../store/userStore';
-import { usePostStore } from '../store/postStore';
-import { Post } from '../store/postStore';
+import { useProfile } from '../hooks/useProfile';
+import { usePosts, Post, Comment } from '../hooks/usePosts';
 import { formatDistanceToNow } from 'date-fns';
 
 interface PostCardProps {
@@ -11,63 +10,94 @@ interface PostCardProps {
 }
 
 export const PostCard = ({ post }: PostCardProps) => {
-  const { currentUser, getUserById, spendHearts, earnHearts } = useUserStore();
-  const { likePost, addComment } = usePostStore();
+  const { profile } = useProfile();
+  const { likePost, unlikePost, fetchComments, createComment } = usePosts();
   const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
-  
-  const author = getUserById(post.userId);
-  const isLiked = currentUser && post.likedBy.includes(currentUser.id);
-  const canLike = currentUser && !currentUser.isDead && currentUser.hearts >= 1 && !isLiked;
-  const canComment = currentUser && !currentUser.isDead && currentUser.hearts >= 5;
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [likingPost, setLikingPost] = useState(false);
 
-  const handleLike = () => {
-    if (!currentUser || !canLike) return;
+  const isLiked = post.user_has_liked;
+  const canLike = profile && profile.status !== 'dead' && profile.hearts >= 1 && !isLiked;
+  const canComment = profile && profile.status !== 'dead' && profile.hearts >= 5;
+
+  const handleLike = async () => {
+    if (!profile || !canLike || likingPost) return;
     
-    if (spendHearts(1)) {
-      likePost(post.id, currentUser.id);
-      // Give heart to post author if they're not dead
-      if (author && !author.isDead && author.id !== currentUser.id) {
-        // In a real app, this would update the author's hearts
-        console.log(`Giving 1 heart to ${author.username}`);
+    setLikingPost(true);
+    if (profile.hearts >= 1) {
+      const success = await likePost(post.id);
+      if (success) {
+        // Update local hearts count optimistically
+        profile.hearts -= 1;
       }
     }
+    setLikingPost(false);
   };
 
-  const handleComment = () => {
-    if (!currentUser || !canComment || !commentText.trim()) return;
+  const handleUnlike = async () => {
+    if (!profile || likingPost) return;
     
-    if (spendHearts(5)) {
-      addComment(post.id, currentUser.id, commentText);
-      setCommentText('');
+    setLikingPost(true);
+    await unlikePost(post.id);
+    setLikingPost(false);
+  };
+
+  const handleToggleComments = async () => {
+    if (!showComments) {
+      setLoadingComments(true);
+      const fetchedComments = await fetchComments(post.id);
+      setComments(fetchedComments);
+      setLoadingComments(false);
     }
+    setShowComments(!showComments);
+  };
+
+  const handleComment = async () => {
+    if (!profile || !canComment || !commentText.trim() || submittingComment) return;
+    
+    setSubmittingComment(true);
+    if (profile.hearts >= 5) {
+      const success = await createComment(post.id, commentText);
+      if (success) {
+        setCommentText('');
+        // Refresh comments
+        const fetchedComments = await fetchComments(post.id);
+        setComments(fetchedComments);
+        // Update local hearts count optimistically
+        profile.hearts -= 5;
+      }
+    }
+    setSubmittingComment(false);
   };
 
   return (
     <div className={`bg-white rounded-lg border shadow-sm p-6 transition-all duration-300 ${
-      author?.isDead ? 'opacity-60 grayscale hover:opacity-80' : 'hover:shadow-md'
+      post.profiles.status === 'dead' ? 'opacity-60 grayscale hover:opacity-80' : 'hover:shadow-md'
     }`}>
       {/* Author info */}
       <div className="flex items-center space-x-3 mb-4">
-        <span className="text-2xl">{author?.avatar}</span>
+        <span className="text-2xl">{post.profiles.avatar}</span>
         <div className="flex-1">
           <div className="flex items-center space-x-2">
             <span className={`font-semibold ${
-              author?.isDead ? 'text-gray-400 line-through' : 'text-gray-900'
+              post.profiles.status === 'dead' ? 'text-gray-400 line-through' : 'text-gray-900'
             }`}>
-              {author?.username}
+              {post.profiles.username}
             </span>
             <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
-              author?.isDead 
+              post.profiles.status === 'dead' 
                 ? 'bg-gray-100 text-gray-500' 
-                : author?.hearts && author.hearts < 10
+                : post.profiles.hearts < 10
                   ? 'bg-red-50 text-red-600'
                   : 'bg-pink-50 text-red-600'
             }`}>
               <Heart className="w-3 h-3" />
-              <span>{author?.hearts || 0}</span>
+              <span>{post.profiles.hearts}</span>
             </div>
-            {author?.isDead && (
+            {post.profiles.status === 'dead' && (
               <>
                 <span className="text-gray-400">👻</span>
                 <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
@@ -78,7 +108,7 @@ export const PostCard = ({ post }: PostCardProps) => {
           </div>
           <div className="flex items-center space-x-1 text-xs text-gray-500">
             <Clock className="w-3 h-3" />
-            <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+            <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
           </div>
         </div>
       </div>
@@ -91,34 +121,34 @@ export const PostCard = ({ post }: PostCardProps) => {
       {/* Actions */}
       <div className="flex items-center space-x-4 pt-4 border-t border-gray-100">
         <button
-          onClick={handleLike}
-          disabled={!canLike}
+          onClick={isLiked ? handleUnlike : handleLike}
+          disabled={(!canLike && !isLiked) || likingPost}
           className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-200 ${
             isLiked
               ? 'bg-red-100 text-red-600'
-              : canLike
+              : canLike && !likingPost
                 ? 'bg-pink-50 text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
           }`}
           title={
-            !currentUser?.isDead && currentUser?.hearts === 0
+            !profile?.hearts || profile.hearts === 0
               ? "You're out of Hearts"
               : !canLike && !isLiked
                 ? "You need 1 Heart to like"
                 : "1 Heart"
           }
         >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''} ${canLike ? 'animate-pulse' : ''}`} />
-          <span className="font-medium">{post.likes}</span>
+          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''} ${(canLike && !likingPost) ? 'animate-pulse' : ''}`} />
+          <span className="font-medium">{post.likes_count}</span>
           <span className="text-xs opacity-70">1♥</span>
         </button>
 
         <button
-          onClick={() => setShowComments(!showComments)}
+          onClick={handleToggleComments}
           className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
         >
           <MessageCircle className="w-4 h-4" />
-          <span className="font-medium">{post.comments.length}</span>
+          <span className="font-medium">{post.comments_count}</span>
         </button>
       </div>
 
@@ -126,13 +156,13 @@ export const PostCard = ({ post }: PostCardProps) => {
       {showComments && (
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
           {/* Comment input */}
-          {currentUser && !currentUser.isDead && (
+          {profile && profile.status !== 'dead' && (
             <div className="space-y-2">
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder={canComment ? "Share your thoughts... (costs 5 Hearts)" : "You need 5 Hearts to comment"}
-                disabled={!canComment}
+                disabled={!canComment || submittingComment}
                 className={`w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 ${
                   canComment
                     ? 'border-gray-200 focus:ring-red-200 focus:border-red-300'
@@ -142,38 +172,41 @@ export const PostCard = ({ post }: PostCardProps) => {
               />
               <button
                 onClick={handleComment}
-                disabled={!canComment || !commentText.trim()}
+                disabled={!canComment || !commentText.trim() || submittingComment}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  canComment && commentText.trim()
+                  canComment && commentText.trim() && !submittingComment
                     ? 'bg-red-500 text-white hover:bg-red-600'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                Comment (5♥)
+                {submittingComment ? 'Commenting...' : 'Comment (5♥)'}
               </button>
             </div>
           )}
 
           {/* Comments list */}
-          {post.comments.map(comment => {
-            const commentAuthor = getUserById(comment.userId);
-            return (
+          {loadingComments ? (
+            <div className="text-center py-4">
+              <div className="animate-spin w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full mx-auto"></div>
+            </div>
+          ) : (
+            comments.map(comment => (
               <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-sm">{commentAuthor?.avatar}</span>
+                  <span className="text-sm">{comment.profiles.avatar}</span>
                   <span className={`text-sm font-medium ${
-                    commentAuthor?.isDead ? 'text-gray-400 line-through' : 'text-gray-700'
+                    comment.profiles.status === 'dead' ? 'text-gray-400 line-through' : 'text-gray-700'
                   }`}>
-                    {commentAuthor?.username}
+                    {comment.profiles.username}
                   </span>
                   <span className="text-xs text-gray-500">
-                    {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
+                    {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                   </span>
                 </div>
                 <p className="text-sm text-gray-800">{comment.content}</p>
               </div>
-            );
-          })}
+            ))
+          )}
         </div>
       )}
     </div>

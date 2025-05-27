@@ -1,22 +1,25 @@
 
 import React, { useState } from 'react';
-import { useUserStore } from '../store/userStore';
-import { usePostStore } from '../store/postStore';
+import { useProfile } from '../hooks/useProfile';
+import { usePosts } from '../hooks/usePosts';
+import { useAuth } from '../hooks/useAuth';
 import { Heart, Flame, TrendingUp, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export const Profile = () => {
-  const { currentUser, burnAllHearts } = useUserStore();
-  const { posts } = usePostStore();
+  const { profile } = useProfile();
+  const { posts } = usePosts();
+  const { user } = useAuth();
   const [showBurnConfirm, setShowBurnConfirm] = useState(false);
 
-  if (!currentUser) return null;
+  if (!profile || !user) return null;
 
-  const userPosts = posts.filter(post => post.userId === currentUser.id);
-  const totalLikes = userPosts.reduce((sum, post) => sum + post.likes, 0);
+  const userPosts = posts.filter(post => post.user_id === user.id);
+  const totalLikes = userPosts.reduce((sum, post) => sum + post.likes_count, 0);
 
-  const handleBurnHearts = () => {
-    burnAllHearts();
+  const handleBurnHearts = async () => {
+    // This would need to be implemented with a backend function
+    // For now, we'll just show the confirmation
     setShowBurnConfirm(false);
   };
 
@@ -24,21 +27,21 @@ export const Profile = () => {
     <div className="space-y-6">
       {/* Profile Header */}
       <div className={`bg-white rounded-lg border shadow-sm p-6 ${
-        currentUser.isDead ? 'opacity-70 grayscale' : ''
+        profile.status === 'dead' ? 'opacity-70 grayscale' : ''
       }`}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <div className="text-6xl">{currentUser.avatar}</div>
+            <div className="text-6xl">{profile.avatar}</div>
             <div>
               <h2 className={`text-2xl font-bold ${
-                currentUser.isDead ? 'text-gray-400 line-through' : 'text-gray-900'
+                profile.status === 'dead' ? 'text-gray-400 line-through' : 'text-gray-900'
               }`}>
-                {currentUser.username}
+                {profile.username}
               </h2>
               <p className="text-gray-600">
-                Joined {formatDistanceToNow(currentUser.joinedAt, { addSuffix: true })}
+                Joined {formatDistanceToNow(new Date(profile.created_at), { addSuffix: true })}
               </p>
-              {currentUser.isDead && (
+              {profile.status === 'dead' && (
                 <div className="flex items-center space-x-2 mt-2">
                   <span className="text-gray-400">👻</span>
                   <span className="text-sm bg-gray-200 text-gray-600 px-3 py-1 rounded-full">
@@ -51,21 +54,21 @@ export const Profile = () => {
 
           {/* Heart count display */}
           <div className={`text-center p-6 rounded-lg border-2 ${
-            currentUser.isDead 
+            profile.status === 'dead' 
               ? 'border-gray-300 bg-gray-50' 
-              : currentUser.hearts < 10
+              : profile.hearts < 10
                 ? 'border-red-300 bg-red-50'
                 : 'border-pink-300 bg-pink-50'
           }`}>
             <div className={`text-4xl font-bold ${
-              currentUser.isDead ? 'text-gray-400' : 'text-red-600'
+              profile.status === 'dead' ? 'text-gray-400' : 'text-red-600'
             }`}>
-              {currentUser.hearts}
+              {profile.hearts}
             </div>
             <div className="text-sm text-gray-600 mt-1">
               Hearts
             </div>
-            {!currentUser.isDead && currentUser.hearts > 0 && (
+            {profile.status !== 'dead' && profile.hearts > 0 && (
               <Heart className="w-6 h-6 text-red-500 mx-auto mt-2 animate-pulse" />
             )}
           </div>
@@ -75,17 +78,17 @@ export const Profile = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <TrendingUp className="w-6 h-6 text-green-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{currentUser.totalHeartsEarned}</div>
+            <div className="text-2xl font-bold text-gray-900">{profile.total_hearts_earned}</div>
             <div className="text-sm text-gray-600">Hearts Earned</div>
           </div>
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <Heart className="w-6 h-6 text-red-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{currentUser.totalHeartsSpent}</div>
+            <div className="text-2xl font-bold text-gray-900">{profile.total_hearts_spent}</div>
             <div className="text-sm text-gray-600">Hearts Spent</div>
           </div>
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <Users className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{currentUser.revivesGiven}</div>
+            <div className="text-2xl font-bold text-gray-900">{profile.revives_given}</div>
             <div className="text-sm text-gray-600">Revives Given</div>
           </div>
           <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -96,7 +99,7 @@ export const Profile = () => {
         </div>
 
         {/* Burn Hearts Button */}
-        {!currentUser.isDead && currentUser.hearts > 0 && (
+        {profile.status !== 'dead' && profile.hearts > 0 && (
           <div className="text-center">
             {!showBurnConfirm ? (
               <button
@@ -130,7 +133,7 @@ export const Profile = () => {
         )}
 
         {/* Revival message for dead users */}
-        {currentUser.isDead && (
+        {profile.status === 'dead' && (
           <div className="text-center p-4 bg-gray-100 rounded-lg">
             <p className="text-gray-600">
               💀 You are socially dead. Someone needs to like your latest post to revive you.
@@ -160,11 +163,11 @@ export const Profile = () => {
                   <div className="flex items-center space-x-4">
                     <span className="flex items-center space-x-1">
                       <Heart className="w-4 h-4 text-red-500" />
-                      <span>{post.likes}</span>
+                      <span>{post.likes_count}</span>
                     </span>
-                    <span>{post.comments.length} comments</span>
+                    <span>{post.comments_count} comments</span>
                   </div>
-                  <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+                  <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
                 </div>
               </div>
             ))}

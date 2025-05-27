@@ -1,25 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Feed } from '../components/Feed';
 import { DeadZone } from '../components/DeadZone';
 import { Profile } from '../components/Profile';
 import { Navigation } from '../components/Navigation';
-import { useUserStore } from '../store/userStore';
-import { usePostStore } from '../store/postStore';
+import { useAuth } from '../hooks/useAuth';
 
 const Index = () => {
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'feed' | 'deadzone' | 'profile'>('feed');
-  const { currentUser, initializeUser } = useUserStore();
-  const { initializePosts } = usePostStore();
 
-  useEffect(() => {
-    // Initialize the app with sample data
-    initializeUser();
-    initializePosts();
-  }, [initializeUser, initializePosts]);
-
-  if (!currentUser) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex items-center justify-center">
         <div className="text-center">
@@ -28,6 +21,10 @@ const Index = () => {
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
   }
 
   return (

@@ -2,20 +2,38 @@
 import React, { useState } from 'react';
 import { PostCard } from './PostCard';
 import { CreatePost } from './CreatePost';
-import { usePostStore } from '../store/postStore';
-import { useUserStore } from '../store/userStore';
+import { usePosts } from '../hooks/usePosts';
+import { useProfile } from '../hooks/useProfile';
 
 export const Feed = () => {
-  const { posts } = usePostStore();
-  const { currentUser } = useUserStore();
+  const { posts, loading } = usePosts();
+  const { profile } = useProfile();
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
 
   const sortedPosts = [...posts].sort((a, b) => {
     if (sortBy === 'popular') {
-      return b.likes - a.likes;
+      return b.likes_count - a.likes_count;
     }
-    return b.createdAt.getTime() - a.createdAt.getTime();
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-lg p-6 border">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -47,13 +65,19 @@ export const Feed = () => {
       </div>
 
       {/* Create post */}
-      {currentUser && !currentUser.isDead && <CreatePost />}
+      {profile && profile.status !== 'dead' && <CreatePost />}
 
       {/* Posts */}
       <div className="space-y-4">
         {sortedPosts.map(post => (
           <PostCard key={post.id} post={post} />
         ))}
+        
+        {sortedPosts.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No posts yet. Be the first to share something!</p>
+          </div>
+        )}
       </div>
     </div>
   );
