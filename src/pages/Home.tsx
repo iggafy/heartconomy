@@ -41,7 +41,7 @@ export const Home = () => {
               </div>
               <div className="text-2xl font-bold text-gray-900 mb-3">Create Posts</div>
               <div className="text-gray-700">
-                Share your thoughts for <span className="font-bold text-purple-600">2 Hearts</span>
+                Share your thoughts for <span className="font-bold text-purple-600">0 Hearts</span>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -121,7 +121,7 @@ export const Home = () => {
                     <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
                     <span className="font-bold text-gray-900">Spend Wisely</span>
                   </div>
-                  <p className="text-gray-700 text-sm ml-6">Every post, like, and comment costs Hearts</p>
+                  <p className="text-gray-700 text-sm ml-6">Every like, and comment costs Hearts</p>
                 </div>
                 <div className="bg-white rounded-xl p-4 border border-blue-200">
                   <div className="flex items-center mb-2">
@@ -166,13 +166,6 @@ export const Home = () => {
                 <div className="bg-white rounded-xl p-4 border border-green-200">
                   <div className="flex items-center mb-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                    <span className="font-bold text-gray-900">Strategic Engagement</span>
-                  </div>
-                  <p className="text-gray-700 text-sm ml-6">Build influence through smart social investments</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 border border-green-200">
-                  <div className="flex items-center mb-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
                     <span className="font-bold text-gray-900">Emotional Economy</span>
                   </div>
                   <p className="text-gray-700 text-sm ml-6">Experience the thrill of social survival</p>
@@ -206,7 +199,7 @@ export const Home = () => {
           </button>
           
           <p className="text-gray-600 text-sm mt-6">
-            Free to join • No credit card required • Rise or Die responsibly
+            Free to join • Rise or Die responsibly
           </p>
         </div>
       </main>
