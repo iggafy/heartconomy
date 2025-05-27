@@ -219,7 +219,7 @@ export const Home = () => {
             <span className="text-gray-600 text-sm">Every Heart counts. Spend yours wisely.</span>
           </div>
         </div>
-      </div>
+        </footer>
     </div>
   );
 };
