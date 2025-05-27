@@ -18,28 +18,6 @@ export const Home = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-red-500 rounded-lg flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" fill="currentColor" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Heartconomy</h1>
-              <p className="text-sm text-gray-500 italic">Die for the like</p>
-            </div>
-          </div>
-          
-          <button
-            onClick={handleSignUp}
-            className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full font-medium transition-colors"
-          >
-            Sign Up
-          </button>
-        </div>
-      </header>
-
       <main className="max-w-6xl mx-auto px-6 py-16">
         {/* Hero Section */}
         <div className="text-center mb-20">
@@ -54,141 +32,176 @@ export const Home = () => {
           </h1>
           
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-12">
-            Where every like costs a heartbeat, and social survival depends on your generosity.
+            The social network where your Hearts are your lifeline. Start with 100 Hearts — spend them to engage, earn more by creating content people love, or face social extinction.
           </p>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-xl mb-4 mx-auto">
-                <Heart className="w-6 h-6 text-red-500" fill="currentColor" />
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-xl mb-6 mx-auto">
+                <Mail className="w-8 h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">100</div>
-              <div className="text-sm text-gray-600">Hearts to Start</div>
+              <div className="text-2xl font-bold text-gray-900 mb-3">Create Posts</div>
+              <div className="text-gray-700">
+                Share your thoughts for <span className="font-bold text-purple-600">0 Hearts</span>
+              </div>
             </div>
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mb-4 mx-auto">
-                <Users className="w-6 h-6 text-blue-500" />
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-xl mb-6 mx-auto">
+                <ThumbsUp className="w-8 h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">1K+</div>
-              <div className="text-sm text-gray-600">Early Members</div>
+              <div className="text-2xl font-bold text-gray-900 mb-3">Show Love</div>
+              <div className="text-gray-700">
+                Like someone's post for <span className="font-bold text-green-600">1 Heart</span>
+              </div>
             </div>
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mb-4 mx-auto">
-                <TrendingUp className="w-6 h-6 text-green-500" />
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-xl mb-6 mx-auto">
+                <MessageCircle className="w-8 h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">∞</div>
-              <div className="text-sm text-gray-600">Earning Potential</div>
+              <div className="text-2xl font-bold text-gray-900 mb-3">Join Discussions</div>
+              <div className="text-gray-700">
+                Comment thoughtfully for <span className="font-bold text-blue-600">5 Hearts</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Content Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+        <div className="space-y-8 mb-16">
           {/* What is Heartconomy */}
-          <div className="lg:col-span-3 bg-white rounded-3xl p-8 border border-gray-200 shadow-sm">
+          <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-3xl p-10 border-2 border-red-100 shadow-sm">
             <div className="flex items-center mb-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-xl mr-4">
-                <Heart className="w-6 h-6 text-red-500" />
+              <div className="flex items-center justify-center w-14 h-14 bg-red-100 rounded-xl mr-4">
+                <Heart className="w-8 h-8 text-red-600" fill="currentColor" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">What is Heartconomy?</h2>
+              <h2 className="text-3xl font-bold text-gray-900">What is Heartconomy?</h2>
             </div>
-            <p className="text-gray-700 text-lg leading-relaxed">
-              Welcome to the first social network that turns your attention into currency. Start with 100 Hearts — spend them wisely on likes and comments, earn more by creating content that others love, or risk fading into social death.
-            </p>
-          </div>
-
-          {/* How it Works */}
-          <div className="lg:col-span-2 bg-white rounded-3xl p-8 border border-gray-200 shadow-sm">
-            <div className="flex items-center mb-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mr-4">
-                <TrendingUp className="w-6 h-6 text-blue-500" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">How it Works</h2>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div>
-                  <span className="font-semibold text-gray-900">100 Hearts to start:</span>
-                  <span className="text-gray-700 ml-1">Your social lifeblood.</span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div>
+                <p className="text-gray-800 text-lg leading-relaxed mb-6">
+                  The first social network that transforms engagement into survival. Every interaction has weight, every post has purpose, and every Heart counts toward your digital existence.
+                </p>
+                <div className="bg-white rounded-2xl p-6 border border-red-200">
+                  <div className="flex items-center mb-3">
+                    <Gift className="w-6 h-6 text-red-500 mr-3" />
+                    <span className="font-bold text-gray-900">Earn Hearts Back</span>
+                  </div>
+                  <p className="text-gray-700">
+                    When others like your posts, you earn Hearts back — turning great content into social currency that keeps you alive and thriving.
+                  </p>
                 </div>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div>
-                  <span className="font-semibold text-gray-900">Spend Hearts to Like & Comment:</span>
-                  <span className="text-gray-700 ml-1">Likes cost 1 Heart, comments cost 5 Hearts.</span>
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-red-400 to-pink-500 rounded-full mb-4 shadow-lg">
+                  <span className="text-4xl font-bold text-white">100</span>
                 </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div>
-                  <span className="font-semibold text-gray-900">Earn Hearts:</span>
-                  <span className="text-gray-700 ml-1">Get Hearts back when others like your posts.</span>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div>
-                  <span className="font-semibold text-gray-900">Social Death:</span>
-                  <span className="text-gray-700 ml-1">Reach 0 Hearts and you're locked out — until someone revives you by liking your latest post.</span>
-                </div>
+                <p className="text-gray-700 font-medium">Hearts to start your journey</p>
               </div>
             </div>
           </div>
 
-          {/* Why Join */}
-          <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm">
-            <div className="flex items-center mb-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mr-4">
-                <Users className="w-6 h-6 text-green-500" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* How it Works */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl p-8 border-2 border-blue-100 shadow-sm">
+              <div className="flex items-center mb-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mr-4">
+                  <Target className="w-6 h-6 text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">The Heart Economy</h2>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Why Join Heartconomy?</h2>
+              <div className="space-y-5">
+                <div className="bg-white rounded-xl p-4 border border-blue-200">
+                  <div className="flex items-center mb-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                    <span className="font-bold text-gray-900">Start Strong</span>
+                  </div>
+                  <p className="text-gray-700 text-sm ml-6">Begin with 100 Hearts — your social lifeline</p>
+                </div>
+                <div className="bg-white rounded-xl p-4 border border-blue-200">
+                  <div className="flex items-center mb-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                    <span className="font-bold text-gray-900">Spend Wisely</span>
+                  </div>
+                  <p className="text-gray-700 text-sm ml-6">Every like, and comment costs Hearts</p>
+                </div>
+                <div className="bg-white rounded-xl p-4 border border-blue-200">
+                  <div className="flex items-center mb-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                    <span className="font-bold text-gray-900">Earn Through Quality</span>
+                  </div>
+                  <p className="text-gray-700 text-sm ml-6">Great content brings Hearts back when others engage</p>
+                </div>
+                <div className="bg-white rounded-xl p-4 border border-red-200">
+                  <div className="flex items-center mb-2">
+                    <Skull className="w-4 h-4 text-red-500 mr-3" />
+                    <span className="font-bold text-red-600">Social Death</span>
+                  </div>
+                  <p className="text-gray-700 text-sm ml-7">Hit 0 Hearts and get locked out until someone revives you</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div className="text-gray-700">Experience social media with real stakes</div>
+
+            {/* Why Join */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-3xl p-8 border-2 border-green-100 shadow-sm">
+              <div className="flex items-center mb-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mr-4">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Why Heartconomy?</h2>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div className="text-gray-700">Meaningful interactions replace mindless scrolling</div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div className="text-gray-700">Play the emotional economy game and watch your influence grow or fade</div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-3 flex-shrink-0"></div>
-                <div className="text-gray-700">Join a community where every action counts</div>
+              <div className="space-y-5">
+                <div className="bg-white rounded-xl p-4 border border-green-200">
+                  <div className="flex items-center mb-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <span className="font-bold text-gray-900">Real Stakes</span>
+                  </div>
+                  <p className="text-gray-700 text-sm ml-6">Every interaction matters — no mindless scrolling</p>
+                </div>
+                <div className="bg-white rounded-xl p-4 border border-green-200">
+                  <div className="flex items-center mb-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <span className="font-bold text-gray-900">Quality Content</span>
+                  </div>
+                  <p className="text-gray-700 text-sm ml-6">High costs encourage meaningful posts and comments</p>
+                </div>
+                <div className="bg-white rounded-xl p-4 border border-green-200">
+                  <div className="flex items-center mb-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <span className="font-bold text-gray-900">Emotional Economy</span>
+                  </div>
+                  <p className="text-gray-700 text-sm ml-6">Experience the thrill of social survival</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* CTA Section */}
-        <div className="text-center bg-gray-50 rounded-3xl p-12 border border-gray-200">
-          <p className="text-2xl text-gray-800 mb-8 font-medium">
-            Join Heartconomy now — spend your love wisely.
-          </p>
+        <div className="text-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl p-12 border-2 border-gray-200 shadow-sm">
+          <div className="mb-8">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">
+              Ready to Risk It All?
+            </h3>
+            <p className="text-xl text-gray-700 max-w-2xl mx-auto">
+              Join Heartconomy where every Heart counts, every post matters, and social death is always one bad decision away.
+            </p>
+          </div>
           
           <button
             onClick={() => {
               animateHeart();
               handleSignUp();
             }}
-            className={`inline-flex items-center bg-red-500 hover:bg-red-600 text-white font-semibold py-4 px-8 rounded-full text-lg shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 ${isAnimating ? 'animate-pulse' : ''}`}
+            className={`inline-flex items-center bg-red-500 hover:bg-red-600 text-white font-bold py-5 px-10 rounded-full text-xl shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-2xl ${isAnimating ? 'animate-pulse' : ''}`}
           >
-            <Heart className={`w-5 h-5 mr-3 ${isAnimating ? 'animate-bounce' : ''}`} fill="currentColor" />
-            Sign Up for Free
-            <ArrowRight className="w-5 h-5 ml-3" />
+            <Heart className={`w-6 h-6 mr-4 ${isAnimating ? 'animate-bounce' : ''}`} fill="currentColor" />
+            Start with 100 Hearts
+            <ArrowRight className="w-6 h-6 ml-4" />
           </button>
           
-          <p className="text-gray-500 mt-6 text-sm">
-            Join the first 1,000 members • No credit card required
+          <p className="text-gray-600 text-sm mt-6">
+            Free to join • Rise or Die responsibly
           </p>
         </div>
       </main>
@@ -198,10 +211,10 @@ export const Home = () => {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Heart className="w-5 h-5 text-red-500" fill="currentColor" />
-            <span className="text-gray-600 text-sm">Post wisely — every word matters in the heartconomy</span>
+            <span className="text-gray-600 text-sm">Every Heart counts. Spend yours wisely.</span>
           </div>
         </div>
-      </footer>
+        </footer>
     </div>
   );
 };
