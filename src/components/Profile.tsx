@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useProfile } from '../hooks/useProfile';
 import { usePosts } from '../hooks/usePosts';
 import { useAuth } from '../hooks/useAuth';
+import { useHeartTransactions } from '../hooks/useHeartTransactions';
 import { Heart, Flame, TrendingUp, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -10,6 +11,7 @@ export const Profile = () => {
   const { profile } = useProfile();
   const { posts } = usePosts();
   const { user } = useAuth();
+  const { burnHearts, loading } = useHeartTransactions();
   const [showBurnConfirm, setShowBurnConfirm] = useState(false);
 
   if (!profile || !user) return null;
@@ -18,9 +20,12 @@ export const Profile = () => {
   const totalLikes = userPosts.reduce((sum, post) => sum + post.likes_count, 0);
 
   const handleBurnHearts = async () => {
-    // This would need to be implemented with a backend function
-    // For now, we'll just show the confirmation
-    setShowBurnConfirm(false);
+    const success = await burnHearts();
+    if (success) {
+      setShowBurnConfirm(false);
+      // Refresh the page to show updated status
+      window.location.reload();
+    }
   };
 
   return (
@@ -104,7 +109,8 @@ export const Profile = () => {
             {!showBurnConfirm ? (
               <button
                 onClick={() => setShowBurnConfirm(true)}
-                className="bg-red-600 text-white px-6 py-3 rounded-full font-bold hover:bg-red-700 transition-all duration-200 hover:scale-105 active:scale-95"
+                disabled={loading}
+                className="bg-red-600 text-white px-6 py-3 rounded-full font-bold hover:bg-red-700 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50"
               >
                 🔥 Burn All My Hearts
               </button>
@@ -116,12 +122,14 @@ export const Profile = () => {
                 <div className="space-x-4">
                   <button
                     onClick={handleBurnHearts}
-                    className="bg-red-600 text-white px-6 py-2 rounded-full font-bold hover:bg-red-700"
+                    disabled={loading}
+                    className="bg-red-600 text-white px-6 py-2 rounded-full font-bold hover:bg-red-700 disabled:opacity-50"
                   >
-                    Yes, Burn Them All 🔥
+                    {loading ? 'Burning...' : 'Yes, Burn Them All 🔥'}
                   </button>
                   <button
                     onClick={() => setShowBurnConfirm(false)}
+                    disabled={loading}
                     className="bg-gray-300 text-gray-700 px-6 py-2 rounded-full font-medium hover:bg-gray-400"
                   >
                     Cancel
@@ -136,7 +144,7 @@ export const Profile = () => {
         {profile.status === 'dead' && (
           <div className="text-center p-4 bg-gray-100 rounded-lg">
             <p className="text-gray-600">
-              💀 You are socially dead. Someone needs to like your latest post to revive you.
+              💀 You are socially dead. Someone needs to revive you in the Dead Zone to bring you back.
             </p>
           </div>
         )}

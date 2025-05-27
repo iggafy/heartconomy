@@ -2,12 +2,14 @@
 import React from 'react';
 import { useProfile } from '../hooks/useProfile';
 import { usePosts } from '../hooks/usePosts';
+import { useHeartTransactions } from '../hooks/useHeartTransactions';
 import { Heart, Skull } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export const DeadZone = () => {
   const { profile } = useProfile();
   const { posts } = usePosts();
+  const { reviveUser, loading } = useHeartTransactions();
 
   // Filter dead users from posts
   const deadUserPosts = posts
@@ -23,9 +25,13 @@ export const DeadZone = () => {
   const canRevive = profile && profile.status !== 'dead' && profile.hearts >= 1;
 
   const handleRevive = async (userId: string) => {
-    if (!canRevive) return;
-    // This would need to be implemented with a backend function
-    console.log('Reviving user:', userId);
+    if (!canRevive || loading) return;
+    
+    const success = await reviveUser(userId);
+    if (success) {
+      // Refresh the page to show updated data
+      window.location.reload();
+    }
   };
 
   return (
@@ -76,16 +82,16 @@ export const DeadZone = () => {
                   {/* Revive button */}
                   <button
                     onClick={() => handleRevive(post.user_id)}
-                    disabled={!canRevive}
+                    disabled={!canRevive || loading}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-full font-medium transition-all duration-300 ${
-                      canRevive
+                      canRevive && !loading
                         ? 'bg-red-600 text-white hover:bg-red-500 hover:scale-105 active:scale-95 animate-pulse'
                         : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     }`}
                     title={canRevive ? "Revive this user (costs 1 Heart)" : "You need Hearts to revive"}
                   >
                     <Heart className="w-4 h-4" />
-                    <span>Revive (1♥)</span>
+                    <span>{loading ? 'Reviving...' : 'Revive (1♥)'}</span>
                   </button>
                 </div>
 

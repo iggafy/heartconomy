@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Heart, MessageCircle, Clock } from 'lucide-react';
 import { useProfile } from '../hooks/useProfile';
 import { usePosts, Post, Comment } from '../hooks/usePosts';
+import { useHeartTransactions } from '../hooks/useHeartTransactions';
 import { formatDistanceToNow } from 'date-fns';
 
 interface PostCardProps {
@@ -11,38 +12,35 @@ interface PostCardProps {
 
 export const PostCard = ({ post }: PostCardProps) => {
   const { profile } = useProfile();
-  const { likePost, unlikePost, fetchComments, createComment } = usePosts();
+  const { fetchComments } = usePosts();
+  const { likePost, unlikePost, commentPost, loading } = useHeartTransactions();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
-  const [submittingComment, setSubmittingComment] = useState(false);
-  const [likingPost, setLikingPost] = useState(false);
 
   const isLiked = post.user_has_liked;
   const canLike = profile && profile.status !== 'dead' && profile.hearts >= 1 && !isLiked;
   const canComment = profile && profile.status !== 'dead' && profile.hearts >= 5;
 
   const handleLike = async () => {
-    if (!profile || !canLike || likingPost) return;
+    if (!canLike || loading) return;
     
-    setLikingPost(true);
-    if (profile.hearts >= 1) {
-      const success = await likePost(post.id);
-      if (success) {
-        // Update local hearts count optimistically
-        profile.hearts -= 1;
-      }
+    const success = await likePost(post.id);
+    if (success) {
+      // Refresh the page data
+      window.location.reload();
     }
-    setLikingPost(false);
   };
 
   const handleUnlike = async () => {
-    if (!profile || likingPost) return;
+    if (!profile || loading) return;
     
-    setLikingPost(true);
-    await unlikePost(post.id);
-    setLikingPost(false);
+    const success = await unlikePost(post.id);
+    if (success) {
+      // Refresh the page data
+      window.location.reload();
+    }
   };
 
   const handleToggleComments = async () => {
@@ -56,21 +54,17 @@ export const PostCard = ({ post }: PostCardProps) => {
   };
 
   const handleComment = async () => {
-    if (!profile || !canComment || !commentText.trim() || submittingComment) return;
+    if (!canComment || !commentText.trim() || loading) return;
     
-    setSubmittingComment(true);
-    if (profile.hearts >= 5) {
-      const success = await createComment(post.id, commentText);
-      if (success) {
-        setCommentText('');
-        // Refresh comments
-        const fetchedComments = await fetchComments(post.id);
-        setComments(fetchedComments);
-        // Update local hearts count optimistically
-        profile.hearts -= 5;
-      }
+    const success = await commentPost(post.id, commentText);
+    if (success) {
+      setCommentText('');
+      // Refresh comments
+      const fetchedComments = await fetchComments(post.id);
+      setComments(fetchedComments);
+      // Refresh the page data
+      window.location.reload();
     }
-    setSubmittingComment(false);
   };
 
   return (
@@ -122,11 +116,11 @@ export const PostCard = ({ post }: PostCardProps) => {
       <div className="flex items-center space-x-4 pt-4 border-t border-gray-100">
         <button
           onClick={isLiked ? handleUnlike : handleLike}
-          disabled={(!canLike && !isLiked) || likingPost}
+          disabled={(!canLike && !isLiked) || loading}
           className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-200 ${
             isLiked
               ? 'bg-red-100 text-red-600'
-              : canLike && !likingPost
+              : canLike && !loading
                 ? 'bg-pink-50 text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
           }`}
@@ -138,7 +132,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                 : "1 Heart"
           }
         >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''} ${(canLike && !likingPost) ? 'animate-pulse' : ''}`} />
+          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''} ${loading ? 'animate-pulse' : ''}`} />
           <span className="font-medium">{post.likes_count}</span>
           <span className="text-xs opacity-70">1♥</span>
         </button>
@@ -162,7 +156,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder={canComment ? "Share your thoughts... (costs 5 Hearts)" : "You need 5 Hearts to comment"}
-                disabled={!canComment || submittingComment}
+                disabled={!canComment || loading}
                 className={`w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 ${
                   canComment
                     ? 'border-gray-200 focus:ring-red-200 focus:border-red-300'
@@ -172,14 +166,14 @@ export const PostCard = ({ post }: PostCardProps) => {
               />
               <button
                 onClick={handleComment}
-                disabled={!canComment || !commentText.trim() || submittingComment}
+                disabled={!canComment || !commentText.trim() || loading}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  canComment && commentText.trim() && !submittingComment
+                  canComment && commentText.trim() && !loading
                     ? 'bg-red-500 text-white hover:bg-red-600'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {submittingComment ? 'Commenting...' : 'Comment (5♥)'}
+                {loading ? 'Commenting...' : 'Comment (5♥)'}
               </button>
             </div>
           )}
