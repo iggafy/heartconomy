@@ -9,52 +9,64 @@ export const Home = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-red-50 via-pink-50 to-white px-6 py-16 text-center">
-      <h1 className="text-5xl font-extrabold text-red-600 mb-4 leading-tight">
+    <main className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-red-50 via-pink-50 to-white px-6 py-20 text-center">
+      <h1 className="text-6xl font-extrabold text-red-600 mb-12 leading-tight max-w-4xl">
         Heartconomy — <span className="italic">Die for the like.</span>
       </h1>
 
-      <p className="text-lg text-gray-700 max-w-xl mb-12">
-        Where every like costs a heartbeat, and social survival depends on your generosity.
-      </p>
-
-      <section className="max-w-3xl text-left space-y-8 mb-12">
-        <div>
-          <h2 className="text-2xl font-semibold text-red-600 mb-3">What is Heartconomy?</h2>
-          <p className="text-gray-800 leading-relaxed">
-            Welcome to the first social network that turns your attention into currency.
-            Start with <strong>100 Hearts</strong> — spend them wisely on likes and comments,
-            earn more by creating content that others love, or risk fading into social death.
+      <div className="max-w-4xl w-full space-y-12">
+        {/* Card 1 */}
+        <section className="bg-white rounded-xl p-10 border border-gray-200 shadow-lg text-left transition-transform hover:scale-[1.02] duration-300">
+          <h2 className="text-3xl font-semibold text-gray-900 mb-5">
+            What is Heartconomy?
+          </h2>
+          <p className="text-gray-800 leading-relaxed text-lg">
+            Welcome to the first social network that turns your attention into currency. Trade likes, hearts, and comments as real social capital. The more you give, the richer you become.
           </p>
-        </div>
+        </section>
 
-        <div>
-          <h2 className="text-2xl font-semibold text-red-600 mb-3">How it Works</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-800 leading-relaxed">
-            <li><strong>100 Hearts to start:</strong> Your social lifeblood.</li>
-            <li><strong>Spend Hearts to Like & Comment:</strong> Likes cost 1 Heart, comments cost 5 Hearts.</li>
-            <li><strong>Earn Hearts:</strong> Get Hearts back when others like your posts.</li>
-            <li><strong>Social Death:</strong> Reach 0 Hearts and you’re locked out — until someone revives you by liking your latest post.</li>
+        {/* Card 2 */}
+        <section className="bg-white rounded-xl p-10 border border-gray-200 shadow-lg text-left transition-transform hover:scale-[1.02] duration-300">
+          <h2 className="text-3xl font-semibold text-gray-900 mb-5">
+            How it Works
+          </h2>
+          <ul className="list-disc list-inside space-y-3 text-gray-800 text-lg leading-relaxed">
+            <li>
+              <strong>100 Hearts to Start:</strong> Your social lifeblood — use them wisely.
+            </li>
+            <li>
+              <strong>Give & Gain:</strong> Spend hearts by liking posts or commenting. Earn hearts when others engage with you.
+            </li>
+            <li>
+              <strong>Dynamic Social Wallet:</strong> Watch your influence grow or shrink based on your activity.
+            </li>
+            <li>
+              <strong>Join the Revolution:</strong> Turn passive scrolling into meaningful social currency.
+            </li>
           </ul>
-        </div>
+        </section>
 
-        <div>
-          <h2 className="text-2xl font-semibold text-red-600 mb-3">Why Join Heartconomy?</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-800 leading-relaxed">
-            <li>Experience social media with real stakes</li>
-            <li>Meaningful interactions replace mindless scrolling</li>
-            <li>Play the emotional economy game and watch your influence grow or fade</li>
-            <li>Join a community where every action counts</li>
+        {/* Card 3 */}
+        <section className="bg-white rounded-xl p-10 border border-gray-200 shadow-lg text-left transition-transform hover:scale-[1.02] duration-300">
+          <h2 className="text-3xl font-semibold text-gray-900 mb-5">
+            Why Join Heartconomy?
+          </h2>
+          <ul className="list-disc list-inside space-y-3 text-gray-800 text-lg leading-relaxed">
+            <li>Experience social media where your attention truly counts.</li>
+            <li>Build meaningful connections powered by genuine engagement.</li>
+            <li>Escape the mindless scroll — make your social energy matter.</li>
+            <li>Be part of a community redefining online interaction.</li>
           </ul>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <button
         onClick={handleSignUp}
-        className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-10 rounded-full text-lg shadow-lg transition-colors"
+        className="mt-16 bg-red-600 hover:bg-red-700 text-white font-extrabold py-5 px-14 rounded-full text-xl shadow-xl transition-colors active:scale-95"
+        aria-label="Sign Up for Heartconomy"
       >
         Sign Up for Free
       </button>
-    </div>
+    </main>
   );
-};
+}
