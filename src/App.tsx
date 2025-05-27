@@ -8,6 +8,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { Home } from "./pages/Home";
 
 const queryClient = new QueryClient();
 
@@ -19,9 +20,10 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<Index />} />
-            <Route path="*" element={<NotFound />} />
+              <Route path="/" element={<Home />} /> 
+              <Route path="/auth" element={<Auth />} />  
+              <Route path="/app" element={<Index />} />
+              <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

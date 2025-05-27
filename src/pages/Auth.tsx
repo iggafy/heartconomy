@@ -3,8 +3,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { Heart, User, Mail, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
 
 export const Auth = () => {
+  const navigate = useNavigate();
   const { user, signIn, signUp, loading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -28,7 +31,7 @@ export const Auth = () => {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
