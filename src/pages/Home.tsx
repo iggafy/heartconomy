@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Users, TrendingUp, Zap, ArrowRight } from 'lucide-react';
+import { Heart, MessageCircle, Users, TrendingUp, Zap, ArrowRight, Skull } from 'lucide-react';
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -18,28 +18,6 @@ export const Home = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-red-500 rounded-lg flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" fill="currentColor" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Heartconomy</h1>
-              <p className="text-sm text-gray-500 italic">Die for the like</p>
-            </div>
-          </div>
-          
-          <button
-            onClick={handleSignUp}
-            className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full font-medium transition-colors"
-          >
-            Sign Up
-          </button>
-        </div>
-      </header>
-
       <main className="max-w-6xl mx-auto px-6 py-16">
         {/* Hero Section */}
         <div className="text-center mb-20">
@@ -54,33 +32,31 @@ export const Home = () => {
           </h1>
           
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-12">
-            Where every like costs a heartbeat, and social survival depends on your generosity.
+            Experience social media with real stakes. You start with 100 Hearts — your currency to like, comment, and survive.
           </p>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-xl mb-4 mx-auto">
-                <Heart className="w-6 h-6 text-red-500" fill="currentColor" />
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm">
+              <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-xl mb-6 mx-auto">
+                <Heart className="w-8 h-8 text-red-500" fill="currentColor" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">100</div>
-              <div className="text-sm text-gray-600">Hearts to Start</div>
+              <div className="text-4xl font-bold text-gray-900 mb-3">100</div>
+              <div className="text-lg font-medium text-gray-700">Hearts to Start</div>
             </div>
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mb-4 mx-auto">
-                <Users className="w-6 h-6 text-blue-500" />
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm">
+              <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-xl mb-6 mx-auto">
+                <MessageCircle className="w-8 h-8 text-blue-500" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">1K+</div>
-              <div className="text-sm text-gray-600">Early Members</div>
+              <div className="text-4xl font-bold text-gray-900 mb-3">5</div>
+              <div className="text-lg font-medium text-gray-700">Hearts per Comment</div>
             </div>
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mb-4 mx-auto">
-                <TrendingUp className="w-6 h-6 text-green-500" />
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-sm">
+              <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-xl mb-6 mx-auto">
+                <Skull className="w-8 h-8 text-gray-600" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">∞</div>
-              <div className="text-sm text-gray-600">Earning Potential</div>
+              <div className="text-4xl font-bold text-gray-900 mb-3">0</div>
+              <div className="text-lg font-medium text-gray-700">Hearts = Social Death</div>
             </div>
           </div>
         </div>
@@ -104,7 +80,7 @@ export const Home = () => {
           <div className="lg:col-span-2 bg-white rounded-3xl p-8 border border-gray-200 shadow-sm">
             <div className="flex items-center mb-6">
               <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mr-4">
-                <TrendingUp className="w-6 h-6 text-blue-500" />
+                <Zap className="w-6 h-6 text-blue-500" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">How it Works</h2>
             </div>
@@ -144,7 +120,7 @@ export const Home = () => {
           <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm">
             <div className="flex items-center mb-6">
               <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mr-4">
-                <Users className="w-6 h-6 text-green-500" />
+                <TrendingUp className="w-6 h-6 text-green-500" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">Why Join Heartconomy?</h2>
             </div>
@@ -186,10 +162,6 @@ export const Home = () => {
             Sign Up for Free
             <ArrowRight className="w-5 h-5 ml-3" />
           </button>
-          
-          <p className="text-gray-500 mt-6 text-sm">
-            Join the first 1,000 members • No credit card required
-          </p>
         </div>
       </main>
 
@@ -198,7 +170,7 @@ export const Home = () => {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Heart className="w-5 h-5 text-red-500" fill="currentColor" />
-            <span className="text-gray-600 text-sm">Post wisely — every word matters in the heartconomy</span>
+            <span className="text-gray-600 text-sm">Spend your love wisely</span>
           </div>
         </div>
       </footer>
