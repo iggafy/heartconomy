@@ -87,7 +87,7 @@ async function handleCreatePost(supabaseClient: any, userId: string, data: any) 
     .from('profiles')
     .update({ 
       hearts: profile.hearts - 2,
-      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 2')
+      total_hearts_spent: profile.total_hearts_spent + 2
     })
     .eq('id', userId)
 
@@ -152,18 +152,27 @@ async function handleLikePost(supabaseClient: any, userId: string, data: any) {
     .from('profiles')
     .update({ 
       hearts: profile.hearts - 1,
-      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 1')
+      total_hearts_spent: profile.total_hearts_spent + 1
     })
     .eq('id', userId)
 
-  // Add heart to post author
-  await supabaseClient
+  // Get post author's current hearts to add to them
+  const { data: authorProfile } = await supabaseClient
     .from('profiles')
-    .update({ 
-      hearts: supabaseClient.raw('hearts + 1'),
-      total_hearts_earned: supabaseClient.raw('total_hearts_earned + 1')
-    })
+    .select('hearts, total_hearts_earned')
     .eq('id', post.user_id)
+    .single()
+
+  if (authorProfile) {
+    // Add heart to post author
+    await supabaseClient
+      .from('profiles')
+      .update({ 
+        hearts: authorProfile.hearts + 1,
+        total_hearts_earned: authorProfile.total_hearts_earned + 1
+      })
+      .eq('id', post.user_id)
+  }
 
   // Add activity
   await supabaseClient
@@ -201,23 +210,41 @@ async function handleUnlikePost(supabaseClient: any, userId: string, data: any) 
 
   if (unlikeError) throw unlikeError
 
-  // Return heart to liker
-  await supabaseClient
+  // Get current user hearts to return heart
+  const { data: userProfile } = await supabaseClient
     .from('profiles')
-    .update({ 
-      hearts: supabaseClient.raw('hearts + 1'),
-      total_hearts_spent: supabaseClient.raw('total_hearts_spent - 1')
-    })
+    .select('hearts, total_hearts_spent')
     .eq('id', userId)
+    .single()
 
-  // Remove heart from post author
-  await supabaseClient
+  if (userProfile) {
+    // Return heart to liker
+    await supabaseClient
+      .from('profiles')
+      .update({ 
+        hearts: userProfile.hearts + 1,
+        total_hearts_spent: Math.max(0, userProfile.total_hearts_spent - 1)
+      })
+      .eq('id', userId)
+  }
+
+  // Get post author's current hearts to subtract from them
+  const { data: authorProfile } = await supabaseClient
     .from('profiles')
-    .update({ 
-      hearts: supabaseClient.raw('hearts - 1'),
-      total_hearts_earned: supabaseClient.raw('total_hearts_earned - 1')
-    })
+    .select('hearts, total_hearts_earned')
     .eq('id', post.user_id)
+    .single()
+
+  if (authorProfile) {
+    // Remove heart from post author
+    await supabaseClient
+      .from('profiles')
+      .update({ 
+        hearts: Math.max(0, authorProfile.hearts - 1),
+        total_hearts_earned: Math.max(0, authorProfile.total_hearts_earned - 1)
+      })
+      .eq('id', post.user_id)
+  }
 
   return new Response(JSON.stringify({ success: true }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -267,18 +294,27 @@ async function handleCommentPost(supabaseClient: any, userId: string, data: any)
     .from('profiles')
     .update({ 
       hearts: profile.hearts - 3,
-      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 3')
+      total_hearts_spent: profile.total_hearts_spent + 3
     })
     .eq('id', userId)
 
-  // Add hearts to post author
-  await supabaseClient
+  // Get post author's current hearts to add to them
+  const { data: authorProfile } = await supabaseClient
     .from('profiles')
-    .update({ 
-      hearts: supabaseClient.raw('hearts + 3'),
-      total_hearts_earned: supabaseClient.raw('total_hearts_earned + 3')
-    })
+    .select('hearts, total_hearts_earned')
     .eq('id', post.user_id)
+    .single()
+
+  if (authorProfile) {
+    // Add hearts to post author
+    await supabaseClient
+      .from('profiles')
+      .update({ 
+        hearts: authorProfile.hearts + 3,
+        total_hearts_earned: authorProfile.total_hearts_earned + 3
+      })
+      .eq('id', post.user_id)
+  }
 
   // Add activity
   await supabaseClient
@@ -311,20 +347,29 @@ async function handleReviveUser(supabaseClient: any, userId: string, data: any) 
     .from('profiles')
     .update({ 
       hearts: profile.hearts - 1,
-      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 1'),
-      revives_given: supabaseClient.raw('revives_given + 1')
+      total_hearts_spent: profile.total_hearts_spent + 1,
+      revives_given: profile.revives_given + 1
     })
     .eq('id', userId)
 
-  // Revive target user
-  await supabaseClient
+  // Get target user's current revives_received to increment it
+  const { data: targetProfile } = await supabaseClient
     .from('profiles')
-    .update({ 
-      hearts: 10,
-      status: 'alive',
-      revives_received: supabaseClient.raw('revives_received + 1')
-    })
+    .select('revives_received')
     .eq('id', targetUserId)
+    .single()
+
+  if (targetProfile) {
+    // Revive target user
+    await supabaseClient
+      .from('profiles')
+      .update({ 
+        hearts: 10,
+        status: 'alive',
+        revives_received: targetProfile.revives_received + 1
+      })
+      .eq('id', targetUserId)
+  }
 
   // Add activity
   await supabaseClient
@@ -355,7 +400,7 @@ async function handleBurnHearts(supabaseClient: any, userId: string) {
     .update({ 
       hearts: 0,
       status: 'dead',
-      total_hearts_spent: supabaseClient.raw(`total_hearts_spent + ${profile.hearts}`)
+      total_hearts_spent: profile.total_hearts_spent + profile.hearts
     })
     .eq('id', userId)
 
@@ -392,20 +437,34 @@ async function handleTransferHearts(supabaseClient: any, userId: string, data: a
     })
   }
 
+  // Get target user's current hearts and total_hearts_earned
+  const { data: targetProfile } = await supabaseClient
+    .from('profiles')
+    .select('hearts, total_hearts_earned')
+    .eq('id', targetUserId)
+    .single()
+
+  if (!targetProfile) {
+    return new Response(JSON.stringify({ error: 'Target user not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   // Transfer hearts
   await supabaseClient
     .from('profiles')
     .update({ 
       hearts: profile.hearts - amount,
-      total_hearts_spent: supabaseClient.raw(`total_hearts_spent + ${amount}`)
+      total_hearts_spent: profile.total_hearts_spent + amount
     })
     .eq('id', userId)
 
   await supabaseClient
     .from('profiles')
     .update({ 
-      hearts: supabaseClient.raw(`hearts + ${amount}`),
-      total_hearts_earned: supabaseClient.raw(`total_hearts_earned + ${amount}`)
+      hearts: targetProfile.hearts + amount,
+      total_hearts_earned: targetProfile.total_hearts_earned + amount
     })
     .eq('id', targetUserId)
 
