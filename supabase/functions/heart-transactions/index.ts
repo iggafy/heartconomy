@@ -26,11 +26,45 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { action, postId, targetUserId, amount } = await req.json()
+    const requestBody = await req.json()
+    const { action, postId, targetUserId, content } = requestBody
 
-    console.log('Heart transaction:', { action, postId, targetUserId, amount, userId: user.id })
+    console.log('Heart transaction:', { action, postId, targetUserId, content, userId: user.id })
 
     switch (action) {
+      case 'create_post': {
+        // Get user's current hearts
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('hearts, status')
+          .eq('id', user.id)
+          .single()
+
+        if (!userProfile || userProfile.hearts < 2 || userProfile.status === 'dead') {
+          throw new Error('Insufficient hearts or user is dead')
+        }
+
+        // Deduct 2 hearts from user for creating post
+        await supabase
+          .from('profiles')
+          .update({ 
+            hearts: userProfile.hearts - 2,
+            total_hearts_spent: supabase.sql`total_hearts_spent + 2`
+          })
+          .eq('id', user.id)
+
+        // Create the post
+        const { data: newPost, error: postError } = await supabase
+          .from('posts')
+          .insert({ user_id: user.id, content })
+          .select()
+          .single()
+
+        if (postError) throw postError
+
+        break
+      }
+
       case 'like_post': {
         // Get user's current hearts
         const { data: userProfile } = await supabase
@@ -67,7 +101,7 @@ Deno.serve(async (req) => {
         }
 
         // Start transaction
-        // 1. Deduct heart from liker
+        // 1. Deduct 1 heart from liker
         await supabase
           .from('profiles')
           .update({ 
@@ -76,7 +110,7 @@ Deno.serve(async (req) => {
           })
           .eq('id', user.id)
 
-        // 2. Add heart to post author
+        // 2. Add 1 heart to post author
         await supabase
           .from('profiles')
           .update({ 
@@ -146,8 +180,6 @@ Deno.serve(async (req) => {
       }
 
       case 'comment_post': {
-        const { content } = await req.json()
-
         // Get user's current hearts
         const { data: userProfile } = await supabase
           .from('profiles')
@@ -155,20 +187,40 @@ Deno.serve(async (req) => {
           .eq('id', user.id)
           .single()
 
-        if (!userProfile || userProfile.hearts < 5 || userProfile.status === 'dead') {
+        if (!userProfile || userProfile.hearts < 3 || userProfile.status === 'dead') {
           throw new Error('Insufficient hearts or user is dead')
         }
 
-        // 1. Deduct 5 hearts from commenter
+        // Get post author
+        const { data: post } = await supabase
+          .from('posts')
+          .select('user_id')
+          .eq('id', postId)
+          .single()
+
+        if (!post) {
+          throw new Error('Post not found')
+        }
+
+        // 1. Deduct 3 hearts from commenter
         await supabase
           .from('profiles')
           .update({ 
-            hearts: userProfile.hearts - 5,
-            total_hearts_spent: supabase.sql`total_hearts_spent + 5`
+            hearts: userProfile.hearts - 3,
+            total_hearts_spent: supabase.sql`total_hearts_spent + 3`
           })
           .eq('id', user.id)
 
-        // 2. Create comment
+        // 2. Add 3 hearts to post author
+        await supabase
+          .from('profiles')
+          .update({ 
+            hearts: supabase.sql`hearts + 3`,
+            total_hearts_earned: supabase.sql`total_hearts_earned + 3`
+          })
+          .eq('id', post.user_id)
+
+        // 3. Create comment
         await supabase
           .from('comments')
           .insert({ user_id: user.id, post_id: postId, content })

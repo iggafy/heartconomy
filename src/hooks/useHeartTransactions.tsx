@@ -33,6 +33,12 @@ export function useHeartTransactions() {
 
       // Show success message based on action
       switch (action) {
+        case 'create_post':
+          toast({
+            title: "Post created! 📝",
+            description: "You spent 2 hearts to share your thoughts",
+          });
+          break;
         case 'like_post':
           toast({
             title: "Post liked! ❤️",
@@ -48,7 +54,7 @@ export function useHeartTransactions() {
         case 'comment_post':
           toast({
             title: "Comment posted! 💬",
-            description: "You spent 5 hearts to share your thoughts",
+            description: "You spent 3 hearts to share your thoughts",
           });
           break;
         case 'revive_user':
@@ -80,6 +86,10 @@ export function useHeartTransactions() {
     }
   };
 
+  const createPost = async (content: string) => {
+    return await performTransaction('create_post', { content });
+  };
+
   const likePost = async (postId: string) => {
     return await performTransaction('like_post', { postId });
   };
@@ -101,6 +111,7 @@ export function useHeartTransactions() {
   };
 
   return {
+    createPost,
     likePost,
     unlikePost,
     commentPost,

@@ -21,7 +21,7 @@ export const PostCard = ({ post }: PostCardProps) => {
 
   const isLiked = post.user_has_liked;
   const canLike = profile && profile.status !== 'dead' && profile.hearts >= 1 && !isLiked;
-  const canComment = profile && profile.status !== 'dead' && profile.hearts >= 5;
+  const canComment = profile && profile.status !== 'dead' && profile.hearts >= 3;
 
   const handleLike = async () => {
     if (!canLike || loading) return;
@@ -155,7 +155,7 @@ export const PostCard = ({ post }: PostCardProps) => {
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                placeholder={canComment ? "Share your thoughts... (costs 5 Hearts)" : "You need 5 Hearts to comment"}
+                placeholder={canComment ? "Share your thoughts... (costs 3 Hearts)" : "You need 3 Hearts to comment"}
                 disabled={!canComment || loading}
                 className={`w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 ${
                   canComment
@@ -173,7 +173,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {loading ? 'Commenting...' : 'Comment (5♥)'}
+                {loading ? 'Commenting...' : 'Comment (3♥)'}
               </button>
             </div>
           )}
