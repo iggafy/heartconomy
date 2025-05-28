@@ -1,206 +1,207 @@
 
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Clock } from 'lucide-react';
-import { useProfile } from '../hooks/useProfile';
-import { usePosts, Post, Comment } from '../hooks/usePosts';
-import { useHeartTransactions } from '../hooks/useHeartTransactions';
+import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useHeartTransactions } from '../hooks/useHeartTransactions';
+import { usePosts, Comment } from '../hooks/usePosts';
+import { useProfile } from '../hooks/useProfile';
+import { useAuth } from '../hooks/useAuth';
+import { FollowButton } from './FollowButton';
+import { Post } from '../hooks/usePosts';
 
 interface PostCardProps {
   post: Post;
 }
 
 export const PostCard = ({ post }: PostCardProps) => {
+  const { user } = useAuth();
   const { profile } = useProfile();
-  const { fetchComments } = usePosts();
   const { likePost, unlikePost, commentPost, loading } = useHeartTransactions();
+  const { fetchComments, fetchPosts } = usePosts();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [commentText, setCommentText] = useState('');
+  const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
 
-  const isLiked = post.user_has_liked;
-  const canLike = profile && profile.status !== 'dead' && profile.hearts >= 1 && !isLiked;
-  const canComment = profile && profile.status !== 'dead' && profile.hearts >= 3;
-
   const handleLike = async () => {
-    if (!canLike || loading) return;
+    if (!profile || profile.hearts < 1) return;
     
-    const success = await likePost(post.id);
-    if (success) {
-      // Refresh the page data
-      window.location.reload();
+    if (post.user_has_liked) {
+      const success = await unlikePost(post.id);
+      if (success) {
+        await fetchPosts();
+      }
+    } else {
+      const success = await likePost(post.id);
+      if (success) {
+        await fetchPosts();
+      }
     }
   };
 
-  const handleUnlike = async () => {
-    if (!profile || loading) return;
+  const handleComment = async () => {
+    if (!newComment.trim() || !profile || profile.hearts < 3) return;
     
-    const success = await unlikePost(post.id);
+    const success = await commentPost(post.id, newComment);
     if (success) {
-      // Refresh the page data
-      window.location.reload();
+      setNewComment('');
+      await fetchPosts();
+      if (showComments) {
+        await loadComments();
+      }
     }
   };
 
-  const handleToggleComments = async () => {
+  const loadComments = async () => {
+    setLoadingComments(true);
+    const commentsData = await fetchComments(post.id);
+    setComments(commentsData);
+    setLoadingComments(false);
+  };
+
+  const toggleComments = async () => {
     if (!showComments) {
-      setLoadingComments(true);
-      const fetchedComments = await fetchComments(post.id);
-      setComments(fetchedComments);
-      setLoadingComments(false);
+      await loadComments();
     }
     setShowComments(!showComments);
   };
 
-  const handleComment = async () => {
-    if (!canComment || !commentText.trim() || loading) return;
-    
-    const success = await commentPost(post.id, commentText);
-    if (success) {
-      setCommentText('');
-      // Refresh comments
-      const fetchedComments = await fetchComments(post.id);
-      setComments(fetchedComments);
-      // Refresh the page data
-      window.location.reload();
-    }
-  };
+  const canLike = profile && profile.hearts >= 1 && profile.status !== 'dead';
+  const canComment = profile && profile.hearts >= 3 && profile.status !== 'dead';
+  const isOwnPost = user?.id === post.user_id;
 
   return (
-    <div className={`bg-white rounded-lg border shadow-sm p-6 transition-all duration-300 ${
-      post.profiles.status === 'dead' ? 'opacity-60 grayscale hover:opacity-80' : 'hover:shadow-md'
-    }`}>
-      {/* Author info */}
-      <div className="flex items-center space-x-3 mb-4">
-        <span className="text-2xl">{post.profiles.avatar}</span>
-        <div className="flex-1">
-          <div className="flex items-center space-x-2">
-            <span className={`font-semibold ${
-              post.profiles.status === 'dead' ? 'text-gray-400 line-through' : 'text-gray-900'
-            }`}>
-              {post.profiles.username}
-            </span>
-            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
-              post.profiles.status === 'dead' 
-                ? 'bg-gray-100 text-gray-500' 
-                : post.profiles.hearts < 10
-                  ? 'bg-red-50 text-red-600'
-                  : 'bg-pink-50 text-red-600'
-            }`}>
-              <Heart className="w-3 h-3" />
-              <span>{post.profiles.hearts}</span>
+    <div className="bg-white rounded-lg border shadow-sm p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <span className="text-2xl">{post.profiles.avatar}</span>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold text-gray-900">{post.profiles.username}</span>
+              {post.profiles.status === 'dead' && <span className="text-gray-400">💀</span>}
+              {!isOwnPost && user && <FollowButton userId={post.user_id} username={post.profiles.username} />}
             </div>
-            {post.profiles.status === 'dead' && (
-              <>
-                <span className="text-gray-400">👻</span>
-                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
-                  DEAD
-                </span>
-              </>
-            )}
-          </div>
-          <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <Clock className="w-3 h-3" />
-            <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
+            <div className="text-xs text-gray-500">
+              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+            </div>
           </div>
         </div>
+        
+        <button className="text-gray-400 hover:text-gray-600">
+          <MoreHorizontal className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Post content */}
+      {/* Content */}
       <div className="mb-4">
-        <p className="text-gray-800 leading-relaxed">{post.content}</p>
+        <p className="text-gray-900 whitespace-pre-wrap">{post.content}</p>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center space-x-4 pt-4 border-t border-gray-100">
-        <button
-          onClick={isLiked ? handleUnlike : handleLike}
-          disabled={(!canLike && !isLiked) || loading}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-200 ${
-            isLiked
-              ? 'bg-red-100 text-red-600'
-              : canLike && !loading
-                ? 'bg-pink-50 text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }`}
-          title={
-            !profile?.hearts || profile.hearts === 0
-              ? "You're out of Hearts"
-              : !canLike && !isLiked
-                ? "You need 1 Heart to like"
-                : "1 Heart"
-          }
-        >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''} ${loading ? 'animate-pulse' : ''}`} />
-          <span className="font-medium">{post.likes_count}</span>
-          <span className="text-xs opacity-70">1♥</span>
-        </button>
+      <div className="flex items-center justify-between border-t pt-3">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleLike}
+            disabled={loading || !canLike}
+            className={`flex items-center space-x-2 px-3 py-1 rounded-full transition-all ${
+              post.user_has_liked
+                ? 'bg-red-100 text-red-600'
+                : canLike
+                ? 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+                : 'text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${post.user_has_liked ? 'fill-current' : ''}`} />
+            <span className="text-sm font-medium">{post.likes_count}</span>
+          </button>
 
-        <button
-          onClick={handleToggleComments}
-          className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span className="font-medium">{post.comments_count}</span>
-        </button>
+          <button
+            onClick={toggleComments}
+            className="flex items-center space-x-2 px-3 py-1 rounded-full hover:bg-gray-50 text-gray-600 hover:text-blue-600 transition-all"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">{post.comments_count}</span>
+          </button>
+        </div>
+
+        <div className="text-xs text-gray-500">
+          {post.profiles.hearts} hearts
+        </div>
       </div>
 
-      {/* Comments section */}
+      {/* Comments Section */}
       {showComments && (
-        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-          {/* Comment input */}
+        <div className="mt-4 border-t pt-4">
+          {/* Comment Input */}
           {profile && profile.status !== 'dead' && (
-            <div className="space-y-2">
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder={canComment ? "Share your thoughts... (costs 3 Hearts)" : "You need 3 Hearts to comment"}
-                disabled={!canComment || loading}
-                className={`w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 ${
-                  canComment
-                    ? 'border-gray-200 focus:ring-red-200 focus:border-red-300'
-                    : 'border-gray-200 bg-gray-50 text-gray-400'
-                }`}
-                rows={2}
-              />
-              <button
-                onClick={handleComment}
-                disabled={!canComment || !commentText.trim() || loading}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  canComment && commentText.trim() && !loading
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                {loading ? 'Commenting...' : 'Comment (3♥)'}
-              </button>
+            <div className="mb-4">
+              <div className="flex space-x-3">
+                <span className="text-xl">{profile.avatar}</span>
+                <div className="flex-1">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder={canComment ? "Share your thoughts... (3♥)" : "You need 3 hearts to comment"}
+                    className="w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
+                    rows={2}
+                    disabled={!canComment}
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-xs text-gray-500">
+                      {canComment ? "Comments cost 3 Hearts" : "You need 3 Hearts to comment"}
+                    </span>
+                    <button
+                      onClick={handleComment}
+                      disabled={!newComment.trim() || loading || !canComment}
+                      className={`px-4 py-1 rounded-full text-sm font-medium transition-all ${
+                        newComment.trim() && canComment
+                          ? 'bg-red-500 text-white hover:bg-red-600'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {loading ? 'Posting...' : 'Comment'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Comments list */}
-          {loadingComments ? (
-            <div className="text-center py-4">
-              <div className="animate-spin w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full mx-auto"></div>
-            </div>
-          ) : (
-            comments.map(comment => (
-              <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-sm">{comment.profiles.avatar}</span>
-                  <span className={`text-sm font-medium ${
-                    comment.profiles.status === 'dead' ? 'text-gray-400 line-through' : 'text-gray-700'
-                  }`}>
-                    {comment.profiles.username}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-800">{comment.content}</p>
+          {/* Comments List */}
+          <div className="space-y-3">
+            {loadingComments ? (
+              <div className="text-center py-4">
+                <div className="animate-pulse text-gray-500">Loading comments...</div>
               </div>
-            ))
-          )}
+            ) : (
+              comments.map(comment => (
+                <div key={comment.id} className="flex space-x-3">
+                  <span className="text-lg">{comment.profiles.avatar}</span>
+                  <div className="flex-1">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="font-medium text-sm text-gray-900">
+                          {comment.profiles.username}
+                        </span>
+                        {comment.profiles.status === 'dead' && <span className="text-gray-400 text-xs">💀</span>}
+                        <span className="text-xs text-gray-500">
+                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="text-gray-900 text-sm">{comment.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            
+            {comments.length === 0 && !loadingComments && (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                No comments yet. Be the first to share your thoughts!
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

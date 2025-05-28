@@ -1,4 +1,5 @@
 
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -6,304 +7,421 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabase = createClient(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
     )
 
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) {
-      throw new Error('Unauthorized')
+    const { data: { user } } = await supabaseClient.auth.getUser()
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const requestBody = await req.json()
-    const { action, postId, targetUserId, content } = requestBody
-
-    console.log('Heart transaction:', { action, postId, targetUserId, content, userId: user.id })
+    const { action, ...data } = await req.json()
 
     switch (action) {
-      case 'create_post': {
-        // Get user's current hearts
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('hearts, status')
-          .eq('id', user.id)
-          .single()
-
-        if (!userProfile || userProfile.hearts < 2 || userProfile.status === 'dead') {
-          throw new Error('Insufficient hearts or user is dead')
-        }
-
-        // Deduct 2 hearts from user for creating post
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: userProfile.hearts - 2,
-            total_hearts_spent: supabase.sql`total_hearts_spent + 2`
-          })
-          .eq('id', user.id)
-
-        // Create the post
-        const { data: newPost, error: postError } = await supabase
-          .from('posts')
-          .insert({ user_id: user.id, content })
-          .select()
-          .single()
-
-        if (postError) throw postError
-
-        break
-      }
-
-      case 'like_post': {
-        // Get user's current hearts
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('hearts, status')
-          .eq('id', user.id)
-          .single()
-
-        if (!userProfile || userProfile.hearts < 1 || userProfile.status === 'dead') {
-          throw new Error('Insufficient hearts or user is dead')
-        }
-
-        // Check if already liked
-        const { data: existingLike } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('post_id', postId)
-          .single()
-
-        if (existingLike) {
-          throw new Error('Post already liked')
-        }
-
-        // Get post author
-        const { data: post } = await supabase
-          .from('posts')
-          .select('user_id')
-          .eq('id', postId)
-          .single()
-
-        if (!post) {
-          throw new Error('Post not found')
-        }
-
-        // Start transaction
-        // 1. Deduct 1 heart from liker
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: userProfile.hearts - 1,
-            total_hearts_spent: supabase.sql`total_hearts_spent + 1`
-          })
-          .eq('id', user.id)
-
-        // 2. Add 1 heart to post author
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: supabase.sql`hearts + 1`,
-            total_hearts_earned: supabase.sql`total_hearts_earned + 1`
-          })
-          .eq('id', post.user_id)
-
-        // 3. Create like record
-        await supabase
-          .from('likes')
-          .insert({ user_id: user.id, post_id: postId })
-
-        break
-      }
-
-      case 'unlike_post': {
-        // Get existing like
-        const { data: existingLike } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('post_id', postId)
-          .single()
-
-        if (!existingLike) {
-          throw new Error('Like not found')
-        }
-
-        // Get post author
-        const { data: post } = await supabase
-          .from('posts')
-          .select('user_id')
-          .eq('id', postId)
-          .single()
-
-        if (!post) {
-          throw new Error('Post not found')
-        }
-
-        // Start transaction
-        // 1. Add heart back to liker
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: supabase.sql`hearts + 1`,
-            total_hearts_spent: supabase.sql`total_hearts_spent - 1`
-          })
-          .eq('id', user.id)
-
-        // 2. Remove heart from post author
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: supabase.sql`hearts - 1`,
-            total_hearts_earned: supabase.sql`total_hearts_earned - 1`
-          })
-          .eq('id', post.user_id)
-
-        // 3. Delete like record
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('id', existingLike.id)
-
-        break
-      }
-
-      case 'comment_post': {
-        // Get user's current hearts
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('hearts, status')
-          .eq('id', user.id)
-          .single()
-
-        if (!userProfile || userProfile.hearts < 3 || userProfile.status === 'dead') {
-          throw new Error('Insufficient hearts or user is dead')
-        }
-
-        // Get post author
-        const { data: post } = await supabase
-          .from('posts')
-          .select('user_id')
-          .eq('id', postId)
-          .single()
-
-        if (!post) {
-          throw new Error('Post not found')
-        }
-
-        // 1. Deduct 3 hearts from commenter
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: userProfile.hearts - 3,
-            total_hearts_spent: supabase.sql`total_hearts_spent + 3`
-          })
-          .eq('id', user.id)
-
-        // 2. Add 3 hearts to post author
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: supabase.sql`hearts + 3`,
-            total_hearts_earned: supabase.sql`total_hearts_earned + 3`
-          })
-          .eq('id', post.user_id)
-
-        // 3. Create comment
-        await supabase
-          .from('comments')
-          .insert({ user_id: user.id, post_id: postId, content })
-
-        break
-      }
-
-      case 'revive_user': {
-        // Get reviver's current hearts
-        const { data: reviverProfile } = await supabase
-          .from('profiles')
-          .select('hearts, status')
-          .eq('id', user.id)
-          .single()
-
-        if (!reviverProfile || reviverProfile.hearts < 1 || reviverProfile.status === 'dead') {
-          throw new Error('Insufficient hearts or reviver is dead')
-        }
-
-        // Get target user's status
-        const { data: targetProfile } = await supabase
-          .from('profiles')
-          .select('status, hearts')
-          .eq('id', targetUserId)
-          .single()
-
-        if (!targetProfile || targetProfile.status !== 'dead') {
-          throw new Error('Target user is not dead')
-        }
-
-        // 1. Deduct 1 heart from reviver
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: reviverProfile.hearts - 1,
-            total_hearts_spent: supabase.sql`total_hearts_spent + 1`,
-            revives_given: supabase.sql`revives_given + 1`
-          })
-          .eq('id', user.id)
-
-        // 2. Give 10 hearts to dead user (will trigger status change)
-        await supabase
-          .from('profiles')
-          .update({ 
-            hearts: 10,
-            total_hearts_earned: supabase.sql`total_hearts_earned + 10`,
-            revives_received: supabase.sql`revives_received + 1`
-          })
-          .eq('id', targetUserId)
-
-        break
-      }
-
-      case 'burn_hearts': {
-        // Set user's hearts to 0 (will trigger status change to dead)
-        await supabase
-          .from('profiles')
-          .update({ hearts: 0 })
-          .eq('id', user.id)
-
-        break
-      }
-
+      case 'create_post':
+        return await handleCreatePost(supabaseClient, user.id, data)
+      case 'like_post':
+        return await handleLikePost(supabaseClient, user.id, data)
+      case 'unlike_post':
+        return await handleUnlikePost(supabaseClient, user.id, data)
+      case 'comment_post':
+        return await handleCommentPost(supabaseClient, user.id, data)
+      case 'revive_user':
+        return await handleReviveUser(supabaseClient, user.id, data)
+      case 'burn_hearts':
+        return await handleBurnHearts(supabaseClient, user.id)
+      case 'transfer_hearts':
+        return await handleTransferHearts(supabaseClient, user.id, data)
+      case 'add_activity':
+        return await handleAddActivity(supabaseClient, user.id, data)
       default:
-        throw new Error('Invalid action')
+        return new Response(JSON.stringify({ error: 'Unknown action' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
     }
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    )
-
   } catch (error) {
-    console.error('Heart transaction error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
-      }
-    )
+    console.error('Error:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })
+
+async function handleCreatePost(supabaseClient: any, userId: string, data: any) {
+  const { content } = data
+  
+  // Check user has enough hearts
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('hearts')
+    .eq('id', userId)
+    .single()
+
+  if (!profile || profile.hearts < 2) {
+    return new Response(JSON.stringify({ error: 'Not enough hearts' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Deduct hearts and create post
+  const { error: updateError } = await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: profile.hearts - 2,
+      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 2')
+    })
+    .eq('id', userId)
+
+  if (updateError) throw updateError
+
+  const { error: postError } = await supabaseClient
+    .from('posts')
+    .insert([{ user_id: userId, content }])
+
+  if (postError) throw postError
+
+  // Add activity
+  await supabaseClient
+    .from('activity_feed')
+    .insert([{ user_id: userId, activity_type: 'posted' }])
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function handleLikePost(supabaseClient: any, userId: string, data: any) {
+  const { postId } = data
+
+  // Check user has enough hearts
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('hearts')
+    .eq('id', userId)
+    .single()
+
+  if (!profile || profile.hearts < 1) {
+    return new Response(JSON.stringify({ error: 'Not enough hearts' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Get post author
+  const { data: post } = await supabaseClient
+    .from('posts')
+    .select('user_id')
+    .eq('id', postId)
+    .single()
+
+  if (!post) {
+    return new Response(JSON.stringify({ error: 'Post not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Add like
+  const { error: likeError } = await supabaseClient
+    .from('likes')
+    .insert([{ user_id: userId, post_id: postId }])
+
+  if (likeError) throw likeError
+
+  // Deduct heart from liker
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: profile.hearts - 1,
+      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 1')
+    })
+    .eq('id', userId)
+
+  // Add heart to post author
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: supabaseClient.raw('hearts + 1'),
+      total_hearts_earned: supabaseClient.raw('total_hearts_earned + 1')
+    })
+    .eq('id', post.user_id)
+
+  // Add activity
+  await supabaseClient
+    .from('activity_feed')
+    .insert([{ user_id: post.user_id, activity_type: 'received_like' }])
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function handleUnlikePost(supabaseClient: any, userId: string, data: any) {
+  const { postId } = data
+
+  // Get post author
+  const { data: post } = await supabaseClient
+    .from('posts')
+    .select('user_id')
+    .eq('id', postId)
+    .single()
+
+  if (!post) {
+    return new Response(JSON.stringify({ error: 'Post not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Remove like
+  const { error: unlikeError } = await supabaseClient
+    .from('likes')
+    .delete()
+    .eq('user_id', userId)
+    .eq('post_id', postId)
+
+  if (unlikeError) throw unlikeError
+
+  // Return heart to liker
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: supabaseClient.raw('hearts + 1'),
+      total_hearts_spent: supabaseClient.raw('total_hearts_spent - 1')
+    })
+    .eq('id', userId)
+
+  // Remove heart from post author
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: supabaseClient.raw('hearts - 1'),
+      total_hearts_earned: supabaseClient.raw('total_hearts_earned - 1')
+    })
+    .eq('id', post.user_id)
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function handleCommentPost(supabaseClient: any, userId: string, data: any) {
+  const { postId, content } = data
+
+  // Check user has enough hearts
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('hearts')
+    .eq('id', userId)
+    .single()
+
+  if (!profile || profile.hearts < 3) {
+    return new Response(JSON.stringify({ error: 'Not enough hearts' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Get post author
+  const { data: post } = await supabaseClient
+    .from('posts')
+    .select('user_id')
+    .eq('id', postId)
+    .single()
+
+  if (!post) {
+    return new Response(JSON.stringify({ error: 'Post not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Add comment
+  const { error: commentError } = await supabaseClient
+    .from('comments')
+    .insert([{ user_id: userId, post_id: postId, content }])
+
+  if (commentError) throw commentError
+
+  // Deduct hearts from commenter
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: profile.hearts - 3,
+      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 3')
+    })
+    .eq('id', userId)
+
+  // Add hearts to post author
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: supabaseClient.raw('hearts + 3'),
+      total_hearts_earned: supabaseClient.raw('total_hearts_earned + 3')
+    })
+    .eq('id', post.user_id)
+
+  // Add activity
+  await supabaseClient
+    .from('activity_feed')
+    .insert([{ user_id: post.user_id, activity_type: 'received_comment' }])
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function handleReviveUser(supabaseClient: any, userId: string, data: any) {
+  const { targetUserId } = data
+
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('hearts')
+    .eq('id', userId)
+    .single()
+
+  if (!profile || profile.hearts < 1) {
+    return new Response(JSON.stringify({ error: 'Not enough hearts' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Deduct heart from reviver
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: profile.hearts - 1,
+      total_hearts_spent: supabaseClient.raw('total_hearts_spent + 1'),
+      revives_given: supabaseClient.raw('revives_given + 1')
+    })
+    .eq('id', userId)
+
+  // Revive target user
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: 10,
+      status: 'alive',
+      revives_received: supabaseClient.raw('revives_received + 1')
+    })
+    .eq('id', targetUserId)
+
+  // Add activity
+  await supabaseClient
+    .from('activity_feed')
+    .insert([{ user_id: targetUserId, activity_type: 'revived' }])
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function handleBurnHearts(supabaseClient: any, userId: string) {
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('hearts')
+    .eq('id', userId)
+    .single()
+
+  if (!profile || profile.hearts === 0) {
+    return new Response(JSON.stringify({ error: 'No hearts to burn' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: 0,
+      status: 'dead',
+      total_hearts_spent: supabaseClient.raw(`total_hearts_spent + ${profile.hearts}`)
+    })
+    .eq('id', userId)
+
+  // Add activity
+  await supabaseClient
+    .from('activity_feed')
+    .insert([{ user_id: userId, activity_type: 'burned_hearts' }])
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function handleTransferHearts(supabaseClient: any, userId: string, data: any) {
+  const { targetUserId, amount } = data
+
+  if (amount <= 0 || amount > 50) {
+    return new Response(JSON.stringify({ error: 'Invalid amount' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('hearts')
+    .eq('id', userId)
+    .single()
+
+  if (!profile || profile.hearts < amount) {
+    return new Response(JSON.stringify({ error: 'Not enough hearts' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Transfer hearts
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: profile.hearts - amount,
+      total_hearts_spent: supabaseClient.raw(`total_hearts_spent + ${amount}`)
+    })
+    .eq('id', userId)
+
+  await supabaseClient
+    .from('profiles')
+    .update({ 
+      hearts: supabaseClient.raw(`hearts + ${amount}`),
+      total_hearts_earned: supabaseClient.raw(`total_hearts_earned + ${amount}`)
+    })
+    .eq('id', targetUserId)
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function handleAddActivity(supabaseClient: any, userId: string, data: any) {
+  const { activity_type, details } = data
+
+  await supabaseClient
+    .from('activity_feed')
+    .insert([{ user_id: userId, activity_type, details }])
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}

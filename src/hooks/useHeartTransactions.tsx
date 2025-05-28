@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -110,6 +109,10 @@ export function useHeartTransactions() {
     return await performTransaction('burn_hearts');
   };
 
+  const transferHearts = async (targetUserId: string, amount: number) => {
+    return await performTransaction('transfer_hearts', { targetUserId, amount });
+  };
+
   return {
     createPost,
     likePost,
@@ -117,6 +120,7 @@ export function useHeartTransactions() {
     commentPost,
     reviveUser,
     burnHearts,
+    transferHearts,
     loading,
   };
 }

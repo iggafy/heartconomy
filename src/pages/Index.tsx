@@ -5,12 +5,13 @@ import { Header } from '../components/Header';
 import { Feed } from '../components/Feed';
 import { DeadZone } from '../components/DeadZone';
 import { Profile } from '../components/Profile';
+import { Leaderboard } from '../components/Leaderboard';
 import { Navigation } from '../components/Navigation';
 import { useAuth } from '../hooks/useAuth';
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'feed' | 'deadzone' | 'profile'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'deadzone' | 'profile' | 'leaderboard'>('feed');
 
   if (loading) {
     return (
@@ -24,7 +25,7 @@ const Index = () => {
   }
 
   if (!user) {
-    return <Navigate to="/app" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   return (
@@ -38,6 +39,7 @@ const Index = () => {
           {activeTab === 'feed' && <Feed />}
           {activeTab === 'deadzone' && <DeadZone />}
           {activeTab === 'profile' && <Profile />}
+          {activeTab === 'leaderboard' && <Leaderboard />}
         </div>
       </div>
     </div>
