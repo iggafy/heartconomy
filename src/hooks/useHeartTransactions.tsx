@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -69,8 +70,15 @@ export function useHeartTransactions() {
             variant: "destructive",
           });
           break;
+        case 'transfer_hearts':
+          toast({
+            title: "Hearts transferred! 💝",
+            description: `You transferred ${data.amount} hearts`,
+          });
+          break;
       }
 
+      // The real-time subscription will automatically update the profile
       return true;
     } catch (error) {
       console.error('Transaction error:', error);

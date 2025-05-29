@@ -25,6 +25,7 @@ export function useProfile() {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      setupRealtimeSubscription();
     } else {
       setProfile(null);
       setLoading(false);
@@ -48,6 +49,30 @@ export function useProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const setupRealtimeSubscription = () => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('profile-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
+        },
+        (payload) => {
+          setProfile(payload.new as Profile);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   };
 
   const updateHearts = async (newHearts: number) => {
