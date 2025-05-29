@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export const DeadZone = () => {
   const { profile } = useProfile();
-  const { posts } = usePosts();
+  const { posts, fetchPosts } = usePosts();
   const { reviveUser, loading } = useHeartTransactions();
 
   // Filter dead users from posts
@@ -29,8 +29,8 @@ export const DeadZone = () => {
     
     const success = await reviveUser(userId);
     if (success) {
-      // Refresh the page to show updated data
-      window.location.reload();
+      // Refresh posts to get updated status
+      await fetchPosts();
     }
   };
 

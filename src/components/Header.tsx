@@ -3,6 +3,7 @@ import React from 'react';
 import { useProfile } from '../hooks/useProfile';
 import { useAuth } from '../hooks/useAuth';
 import { Heart, Search, LogOut } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 
 export const Header = () => {
   const { profile } = useProfile();
@@ -67,6 +68,8 @@ export const Header = () => {
                 </span>
               )}
             </div>
+
+            <NotificationBell />
 
             <button
               onClick={handleSignOut}

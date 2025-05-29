@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { TopVampires } from './TopVampires';
+import { ExpandedLeaderboard } from './ExpandedLeaderboard';
 import { ActivityFeed } from './ActivityFeed';
 
 export const Leaderboard = () => {
   return (
     <div className="space-y-6">
-      <TopVampires />
+      <ExpandedLeaderboard />
       <ActivityFeed />
     </div>
   );

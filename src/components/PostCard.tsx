@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useHeartTransactions } from '../hooks/useHeartTransactions';
 import { usePosts, Comment } from '../hooks/usePosts';
@@ -81,16 +81,24 @@ export const PostCard = ({ post }: PostCardProps) => {
               <span className="font-semibold text-gray-900">{post.profiles.username}</span>
               {post.profiles.status === 'dead' && <span className="text-gray-400">💀</span>}
               {!isOwnPost && user && <FollowButton userId={post.user_id} username={post.profiles.username} />}
+              <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
+                post.profiles.status === 'dead'
+                  ? 'bg-gray-100 text-gray-500' 
+                  : post.profiles.hearts < 10
+                    ? 'bg-red-50 text-red-600'
+                    : 'bg-pink-50 text-red-600'
+              }`}>
+                <Heart className={`w-3 h-3 ${
+                  post.profiles.status === 'dead' ? 'text-gray-400' : 'text-red-500'
+                }`} />
+                <span className="font-medium">{post.profiles.hearts}</span>
+              </div>
             </div>
             <div className="text-xs text-gray-500">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
             </div>
           </div>
         </div>
-        
-        <button className="text-gray-400 hover:text-gray-600">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
       </div>
 
       {/* Content */}
@@ -99,35 +107,29 @@ export const PostCard = ({ post }: PostCardProps) => {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between border-t pt-3">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={handleLike}
-            disabled={loading || !canLike}
-            className={`flex items-center space-x-2 px-3 py-1 rounded-full transition-all ${
-              post.user_has_liked
-                ? 'bg-red-100 text-red-600'
-                : canLike
-                ? 'hover:bg-red-50 text-gray-600 hover:text-red-600'
-                : 'text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <Heart className={`w-4 h-4 ${post.user_has_liked ? 'fill-current' : ''}`} />
-            <span className="text-sm font-medium">{post.likes_count}</span>
-          </button>
+      <div className="flex items-center space-x-4 border-t pt-3">
+        <button
+          onClick={handleLike}
+          disabled={loading || !canLike}
+          className={`flex items-center space-x-2 px-3 py-1 rounded-full transition-all ${
+            post.user_has_liked
+              ? 'bg-red-100 text-red-600'
+              : canLike
+              ? 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+              : 'text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${post.user_has_liked ? 'fill-current' : ''}`} />
+          <span className="text-sm font-medium">{post.likes_count}</span>
+        </button>
 
-          <button
-            onClick={toggleComments}
-            className="flex items-center space-x-2 px-3 py-1 rounded-full hover:bg-gray-50 text-gray-600 hover:text-blue-600 transition-all"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span className="text-sm font-medium">{post.comments_count}</span>
-          </button>
-        </div>
-
-        <div className="text-xs text-gray-500">
-          {post.profiles.hearts} hearts
-        </div>
+        <button
+          onClick={toggleComments}
+          className="flex items-center space-x-2 px-3 py-1 rounded-full hover:bg-gray-50 text-gray-600 hover:text-blue-600 transition-all"
+        >
+          <MessageCircle className="w-4 h-4" />
+          <span className="text-sm font-medium">{post.comments_count}</span>
+        </button>
       </div>
 
       {/* Comments Section */}
