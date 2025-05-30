@@ -11,6 +11,8 @@ export interface VampireUser {
   total_hearts_earned: number;
   total_hearts_spent: number;
   vampire_ratio: number;
+  revives_given: number;
+  revives_received: number;
 }
 
 export function useLeaderboard() {
