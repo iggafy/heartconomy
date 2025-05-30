@@ -100,6 +100,11 @@ export function useNotifications() {
     if (!user) return;
 
     try {
+      // Get all unread notification IDs first
+      const unreadNotifications = notifications.filter(n => !n.read);
+      
+      if (unreadNotifications.length === 0) return;
+
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
@@ -113,8 +118,12 @@ export function useNotifications() {
         prev.map(n => ({ ...n, read: true }))
       );
       setUnreadCount(0);
+      
+      console.log('Successfully marked all notifications as read');
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      // Refresh notifications to get the latest state
+      await fetchNotifications();
     }
   };
 

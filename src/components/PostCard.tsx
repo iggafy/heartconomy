@@ -17,7 +17,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { likePost, unlikePost, commentPost, loading } = useHeartTransactions();
-  const { fetchComments, fetchPosts } = usePosts();
+  const { fetchComments, fetchPosts, likeComment, unlikeComment } = usePosts();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -52,6 +52,22 @@ export const PostCard = ({ post }: PostCardProps) => {
     }
   };
 
+  const handleCommentLike = async (commentId: string, isLiked: boolean) => {
+    if (!profile || profile.hearts < 1) return;
+    
+    if (isLiked) {
+      const success = await unlikeComment(commentId);
+      if (success) {
+        await loadComments();
+      }
+    } else {
+      const success = await likeComment(commentId);
+      if (success) {
+        await loadComments();
+      }
+    }
+  };
+
   const loadComments = async () => {
     setLoadingComments(true);
     const commentsData = await fetchComments(post.id);
@@ -69,6 +85,48 @@ export const PostCard = ({ post }: PostCardProps) => {
   const canLike = profile && profile.hearts >= 1 && profile.status !== 'dead';
   const canComment = profile && profile.hearts >= 3 && profile.status !== 'dead';
   const isOwnPost = user?.id === post.user_id;
+
+  const renderComment = (comment: Comment, isReply = false) => (
+    <div key={comment.id} className={`flex space-x-3 ${isReply ? 'ml-8 mt-2' : ''}`}>
+      <span className="text-lg">{comment.profiles.avatar}</span>
+      <div className="flex-1">
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="font-medium text-sm text-gray-900">
+              {comment.profiles.username}
+            </span>
+            {comment.profiles.status === 'dead' && <span className="text-gray-400 text-xs">💀</span>}
+            <span className="text-xs text-gray-500">
+              {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+            </span>
+          </div>
+          <p className="text-gray-900 text-sm mb-2">{comment.content}</p>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handleCommentLike(comment.id, comment.user_has_liked || false)}
+              disabled={loading || !canLike}
+              className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs transition-all ${
+                comment.user_has_liked
+                  ? 'bg-red-100 text-red-600'
+                  : canLike
+                  ? 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+                  : 'text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <Heart className={`w-3 h-3 ${comment.user_has_liked ? 'fill-current' : ''}`} />
+              <span>{comment.likes_count}</span>
+            </button>
+          </div>
+        </div>
+        {/* Render replies */}
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="space-y-2">
+            {comment.replies.map(reply => renderComment(reply, true))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-lg border shadow-sm p-6">
@@ -177,25 +235,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                 <div className="animate-pulse text-gray-500">Loading comments...</div>
               </div>
             ) : (
-              comments.map(comment => (
-                <div key={comment.id} className="flex space-x-3">
-                  <span className="text-lg">{comment.profiles.avatar}</span>
-                  <div className="flex-1">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-sm text-gray-900">
-                          {comment.profiles.username}
-                        </span>
-                        {comment.profiles.status === 'dead' && <span className="text-gray-400 text-xs">💀</span>}
-                        <span className="text-xs text-gray-500">
-                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                      <p className="text-gray-900 text-sm">{comment.content}</p>
-                    </div>
-                  </div>
-                </div>
-              ))
+              comments.map(comment => renderComment(comment))
             )}
             
             {comments.length === 0 && !loadingComments && (
