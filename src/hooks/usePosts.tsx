@@ -147,18 +147,28 @@ export function usePosts() {
     if (!user) return [];
 
     try {
+      // First get the list of users this user follows
+      const { data: followData, error: followError } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id);
+
+      if (followError) throw followError;
+
+      const followingIds = followData?.map(f => f.following_id) || [];
+      
+      if (followingIds.length === 0) {
+        return [];
+      }
+
+      // Then get posts from those users
       const { data, error } = await supabase
         .from('posts')
         .select(`
           *,
           profiles!inner (username, avatar, hearts, status)
         `)
-        .in('user_id', 
-          supabase
-            .from('follows')
-            .select('following_id')
-            .eq('follower_id', user.id)
-        )
+        .in('user_id', followingIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -180,73 +190,6 @@ export function usePosts() {
     } catch (error) {
       console.error('Error fetching following posts:', error);
       return [];
-    }
-  };
-
-  const createPost = async (content: string) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .insert([{ user_id: user.id, content }]);
-
-      if (error) throw error;
-      
-      // Real-time will handle the refresh
-      return true;
-    } catch (error) {
-      console.error('Error creating post:', error);
-      return false;
-    }
-  };
-
-  const likePost = async (postId: string) => {
-    if (!user) return false;
-
-    try {
-      // First add the like record
-      const { error: likeError } = await supabase
-        .from('likes')
-        .insert([{ user_id: user.id, post_id: postId }]);
-
-      if (likeError) throw likeError;
-
-      // Then call the edge function for heart transfer
-      const { error: heartError } = await supabase.functions.invoke('heart-transactions', {
-        body: { action: 'like_post', postId }
-      });
-
-      if (heartError) {
-        console.error('Heart transfer error:', heartError);
-        // Don't throw here - the like was still recorded
-      }
-      
-      // Real-time will handle the refresh
-      return true;
-    } catch (error) {
-      console.error('Error liking post:', error);
-      return false;
-    }
-  };
-
-  const unlikePost = async (postId: string) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from('likes')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('post_id', postId);
-
-      if (error) throw error;
-      
-      // Real-time will handle the refresh
-      return true;
-    } catch (error) {
-      console.error('Error unliking post:', error);
-      return false;
     }
   };
 
@@ -310,29 +253,6 @@ export function usePosts() {
     }
   };
 
-  const createComment = async (postId: string, content: string, parentCommentId?: string) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from('comments')
-        .insert([{ 
-          user_id: user.id, 
-          post_id: postId, 
-          content,
-          parent_comment_id: parentCommentId || null
-        }]);
-
-      if (error) throw error;
-      
-      // Real-time will handle the refresh
-      return true;
-    } catch (error) {
-      console.error('Error creating comment:', error);
-      return false;
-    }
-  };
-
   const likeComment = async (commentId: string) => {
     if (!user) return false;
 
@@ -384,11 +304,7 @@ export function usePosts() {
     loading,
     fetchPosts,
     fetchFollowingPosts,
-    createPost,
-    likePost,
-    unlikePost,
     fetchComments,
-    createComment,
     likeComment,
     unlikeComment,
   };
