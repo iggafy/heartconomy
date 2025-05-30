@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export const DeadZone = () => {
   const { profile } = useProfile();
-  const { posts, fetchPosts } = usePosts();
+  const { posts } = usePosts();
   const { reviveUser, loading } = useHeartTransactions();
 
   // Filter dead users from posts
@@ -22,15 +22,15 @@ export const DeadZone = () => {
     }, {} as Record<string, any>);
 
   const deadUsers = Object.values(deadUserPosts);
-  const canRevive = profile && profile.status !== 'dead' && profile.hearts >= 1;
+  const canRevive = profile && profile.status !== 'dead' && profile.hearts >= 10; // FIXED: Now requires 10 hearts
 
   const handleRevive = async (userId: string) => {
     if (!canRevive || loading) return;
     
     const success = await reviveUser(userId);
     if (success) {
-      // Refresh posts to get updated status
-      await fetchPosts();
+      // Real-time updates will handle the refresh
+      console.log('User revived successfully');
     }
   };
 
@@ -88,10 +88,10 @@ export const DeadZone = () => {
                         ? 'bg-red-600 text-white hover:bg-red-500 hover:scale-105 active:scale-95 animate-pulse'
                         : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     }`}
-                    title={canRevive ? "Revive this user (costs 1 Heart)" : "You need Hearts to revive"}
+                    title={canRevive ? "Revive this user (costs 10 Hearts)" : "You need 10 Hearts to revive"}
                   >
                     <Heart className="w-4 h-4" />
-                    <span>{loading ? 'Reviving...' : 'Revive (1♥)'}</span>
+                    <span>{loading ? 'Reviving...' : 'Revive (10♥)'}</span>
                   </button>
                 </div>
 
@@ -134,10 +134,10 @@ export const DeadZone = () => {
       )}
 
       {/* Warning for current user */}
-      {profile && profile.status !== 'dead' && profile.hearts < 5 && (
+      {profile && profile.status !== 'dead' && profile.hearts < 10 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
           <p className="text-red-700">
-            ⚠️ You're dangerously close to joining the Dead Zone yourself. Spend wisely!
+            ⚠️ You're low on hearts. You need at least 10 hearts to revive someone from the Dead Zone!
           </p>
         </div>
       )}

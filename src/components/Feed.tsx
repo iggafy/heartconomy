@@ -1,23 +1,51 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PostCard } from './PostCard';
 import { CreatePost } from './CreatePost';
 import { usePosts } from '../hooks/usePosts';
 import { useProfile } from '../hooks/useProfile';
 
 export const Feed = () => {
-  const { posts, loading } = usePosts();
+  const { posts, loading, fetchFollowingPosts } = usePosts();
   const { profile } = useProfile();
-  const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
+  const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'following'>('recent');
+  const [followingPosts, setFollowingPosts] = useState<any[]>([]);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
 
-  const sortedPosts = [...posts].sort((a, b) => {
-    if (sortBy === 'popular') {
-      return b.likes_count - a.likes_count;
+  useEffect(() => {
+    if (sortBy === 'following') {
+      loadFollowingPosts();
     }
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  }, [sortBy]);
 
-  if (loading) {
+  const loadFollowingPosts = async () => {
+    setLoadingFollowing(true);
+    try {
+      const following = await fetchFollowingPosts();
+      setFollowingPosts(following);
+    } catch (error) {
+      console.error('Error loading following posts:', error);
+    } finally {
+      setLoadingFollowing(false);
+    }
+  };
+
+  const getDisplayPosts = () => {
+    if (sortBy === 'following') {
+      return followingPosts;
+    }
+
+    const postsToSort = [...posts];
+    if (sortBy === 'popular') {
+      return postsToSort.sort((a, b) => b.likes_count - a.likes_count);
+    }
+    return postsToSort.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  };
+
+  const isLoading = sortBy === 'following' ? loadingFollowing : loading;
+  const displayPosts = getDisplayPosts();
+
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -61,6 +89,16 @@ export const Feed = () => {
           >
             Popular
           </button>
+          <button
+            onClick={() => setSortBy('following')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              sortBy === 'following'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Following
+          </button>
         </div>
       </div>
 
@@ -69,13 +107,18 @@ export const Feed = () => {
 
       {/* Posts */}
       <div className="space-y-4">
-        {sortedPosts.map(post => (
+        {displayPosts.map(post => (
           <PostCard key={post.id} post={post} />
         ))}
         
-        {sortedPosts.length === 0 && (
+        {displayPosts.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No posts yet. Be the first to share something!</p>
+            <p className="text-gray-500">
+              {sortBy === 'following' 
+                ? "No posts from people you follow yet. Try following some users!"
+                : "No posts yet. Be the first to share something!"
+              }
+            </p>
           </div>
         )}
       </div>

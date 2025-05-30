@@ -26,11 +26,15 @@ export interface Comment {
   post_id: string;
   content: string;
   created_at: string;
+  likes_count: number;
+  parent_comment_id: string | null;
   profiles: {
     username: string;
     avatar: string;
     status: 'alive' | 'dead';
   };
+  user_has_liked?: boolean;
+  replies?: Comment[];
 }
 
 export function usePosts() {
@@ -40,7 +44,67 @@ export function usePosts() {
 
   useEffect(() => {
     fetchPosts();
+    setupRealtimeSubscriptions();
   }, [user]);
+
+  const setupRealtimeSubscriptions = () => {
+    // Subscribe to posts changes
+    const postsChannel = supabase
+      .channel('posts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'posts'
+        },
+        () => {
+          console.log('Posts updated, refreshing...');
+          fetchPosts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes'
+        },
+        () => {
+          console.log('Likes updated, refreshing...');
+          fetchPosts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments'
+        },
+        () => {
+          console.log('Comments updated, refreshing...');
+          fetchPosts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          console.log('Profiles updated, refreshing...');
+          fetchPosts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postsChannel);
+    };
+  };
 
   const fetchPosts = async () => {
     try {
@@ -79,6 +143,46 @@ export function usePosts() {
     }
   };
 
+  const fetchFollowingPosts = async () => {
+    if (!user) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles!inner (username, avatar, hearts, status)
+        `)
+        .in('user_id', 
+          supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', user.id)
+        )
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Check which posts the current user has liked
+      const { data: likes } = await supabase
+        .from('likes')
+        .select('post_id')
+        .eq('user_id', user.id);
+
+      const likedPostIds = new Set(likes?.map(like => like.post_id) || []);
+      
+      const postsWithLikes = (data || []).map(post => ({
+        ...post,
+        user_has_liked: likedPostIds.has(post.id)
+      }));
+
+      return postsWithLikes;
+    } catch (error) {
+      console.error('Error fetching following posts:', error);
+      return [];
+    }
+  };
+
   const createPost = async (content: string) => {
     if (!user) return false;
 
@@ -89,7 +193,7 @@ export function usePosts() {
 
       if (error) throw error;
       
-      await fetchPosts(); // Refresh posts
+      // Real-time will handle the refresh
       return true;
     } catch (error) {
       console.error('Error creating post:', error);
@@ -101,13 +205,24 @@ export function usePosts() {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      // First add the like record
+      const { error: likeError } = await supabase
         .from('likes')
         .insert([{ user_id: user.id, post_id: postId }]);
 
-      if (error) throw error;
+      if (likeError) throw likeError;
+
+      // Then call the edge function for heart transfer
+      const { error: heartError } = await supabase.functions.invoke('heart-transactions', {
+        body: { action: 'like_post', postId }
+      });
+
+      if (heartError) {
+        console.error('Heart transfer error:', heartError);
+        // Don't throw here - the like was still recorded
+      }
       
-      await fetchPosts(); // Refresh posts
+      // Real-time will handle the refresh
       return true;
     } catch (error) {
       console.error('Error liking post:', error);
@@ -127,7 +242,7 @@ export function usePosts() {
 
       if (error) throw error;
       
-      await fetchPosts(); // Refresh posts
+      // Real-time will handle the refresh
       return true;
     } catch (error) {
       console.error('Error unliking post:', error);
@@ -147,27 +262,119 @@ export function usePosts() {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return data || [];
+
+      // Check which comments the current user has liked
+      let likedCommentIds = new Set();
+      if (user) {
+        const { data: commentLikes } = await supabase
+          .from('comment_likes')
+          .select('comment_id')
+          .eq('user_id', user.id);
+        
+        likedCommentIds = new Set(commentLikes?.map(like => like.comment_id) || []);
+      }
+
+      // Organize comments into threads
+      const commentsWithLikes = (data || []).map(comment => ({
+        ...comment,
+        user_has_liked: likedCommentIds.has(comment.id),
+        replies: []
+      }));
+
+      // Build threaded structure
+      const topLevelComments: Comment[] = [];
+      const commentMap = new Map<string, Comment>();
+
+      // First pass: create map
+      commentsWithLikes.forEach(comment => {
+        commentMap.set(comment.id, comment);
+      });
+
+      // Second pass: build tree
+      commentsWithLikes.forEach(comment => {
+        if (comment.parent_comment_id) {
+          const parent = commentMap.get(comment.parent_comment_id);
+          if (parent) {
+            parent.replies = parent.replies || [];
+            parent.replies.push(comment);
+          }
+        } else {
+          topLevelComments.push(comment);
+        }
+      });
+
+      return topLevelComments;
     } catch (error) {
       console.error('Error fetching comments:', error);
       return [];
     }
   };
 
-  const createComment = async (postId: string, content: string) => {
+  const createComment = async (postId: string, content: string, parentCommentId?: string) => {
     if (!user) return false;
 
     try {
       const { error } = await supabase
         .from('comments')
-        .insert([{ user_id: user.id, post_id: postId, content }]);
+        .insert([{ 
+          user_id: user.id, 
+          post_id: postId, 
+          content,
+          parent_comment_id: parentCommentId || null
+        }]);
 
       if (error) throw error;
       
-      await fetchPosts(); // Refresh posts to update comment count
+      // Real-time will handle the refresh
       return true;
     } catch (error) {
       console.error('Error creating comment:', error);
+      return false;
+    }
+  };
+
+  const likeComment = async (commentId: string) => {
+    if (!user) return false;
+
+    try {
+      // First add the comment like record
+      const { error: likeError } = await supabase
+        .from('comment_likes')
+        .insert([{ user_id: user.id, comment_id: commentId }]);
+
+      if (likeError) throw likeError;
+
+      // Then call the edge function for heart transfer
+      const { error: heartError } = await supabase.functions.invoke('heart-transactions', {
+        body: { action: 'like_comment', commentId }
+      });
+
+      if (heartError) {
+        console.error('Heart transfer error:', heartError);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error liking comment:', error);
+      return false;
+    }
+  };
+
+  const unlikeComment = async (commentId: string) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('comment_likes')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('comment_id', commentId);
+
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error('Error unliking comment:', error);
       return false;
     }
   };
@@ -176,10 +383,13 @@ export function usePosts() {
     posts,
     loading,
     fetchPosts,
+    fetchFollowingPosts,
     createPost,
     likePost,
     unlikePost,
     fetchComments,
     createComment,
+    likeComment,
+    unlikeComment,
   };
 }
