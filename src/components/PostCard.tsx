@@ -7,71 +7,155 @@ import { usePosts, Comment } from '../hooks/usePosts';
 import { useProfile } from '../hooks/useProfile';
 import { useAuth } from '../hooks/useAuth';
 import { FollowButton } from './FollowButton';
+import { CommentReply } from './CommentReply';
 import { Post } from '../hooks/usePosts';
 
 interface PostCardProps {
   post: Post;
+  onPostUpdate?: (updatedPost: Post) => void;
 }
 
-export const PostCard = ({ post }: PostCardProps) => {
+export const PostCard = ({ post, onPostUpdate }: PostCardProps) => {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { likePost, unlikePost, commentPost, loading } = useHeartTransactions();
-  const { fetchComments, fetchPosts, likeComment, unlikeComment } = usePosts();
+  const { fetchComments, likeComment, unlikeComment } = usePosts();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  
+  // Local state for optimistic updates
+  const [localPost, setLocalPost] = useState(post);
+  const [localComments, setLocalComments] = useState<Comment[]>([]);
+
+  React.useEffect(() => {
+    setLocalPost(post);
+  }, [post]);
+
+  React.useEffect(() => {
+    setLocalComments(comments);
+  }, [comments]);
 
   const handleLike = async () => {
     if (!profile || profile.hearts < 1) return;
     
-    if (post.user_has_liked) {
-      const success = await unlikePost(post.id);
-      if (success) {
-        await fetchPosts();
-      }
+    // Optimistic update
+    const wasLiked = localPost.user_has_liked;
+    const optimisticPost = {
+      ...localPost,
+      user_has_liked: !wasLiked,
+      likes_count: wasLiked ? localPost.likes_count - 1 : localPost.likes_count + 1
+    };
+    setLocalPost(optimisticPost);
+    onPostUpdate?.(optimisticPost);
+    
+    let success = false;
+    if (wasLiked) {
+      success = await unlikePost(localPost.id);
     } else {
-      const success = await likePost(post.id);
-      if (success) {
-        await fetchPosts();
-      }
+      success = await likePost(localPost.id);
+    }
+    
+    // If the request failed, revert the optimistic update
+    if (!success) {
+      setLocalPost(localPost);
+      onPostUpdate?.(localPost);
     }
   };
 
   const handleComment = async () => {
     if (!newComment.trim() || !profile || profile.hearts < 3) return;
     
-    const success = await commentPost(post.id, newComment);
+    // Optimistic update - add comment immediately
+    const optimisticComment: Comment = {
+      id: `temp_${Date.now()}`,
+      user_id: user!.id,
+      post_id: localPost.id,
+      content: newComment,
+      created_at: new Date().toISOString(),
+      likes_count: 0,
+      parent_comment_id: null,
+      profiles: {
+        username: profile.username,
+        avatar: profile.avatar,
+        status: profile.status
+      },
+      user_has_liked: false,
+      replies: []
+    };
+    
+    const optimisticPost = {
+      ...localPost,
+      comments_count: localPost.comments_count + 1
+    };
+    
+    setLocalComments([...localComments, optimisticComment]);
+    setLocalPost(optimisticPost);
+    onPostUpdate?.(optimisticPost);
+    setNewComment('');
+    
+    const success = await commentPost(localPost.id, newComment);
     if (success) {
-      setNewComment('');
-      await fetchPosts();
       if (showComments) {
         await loadComments();
       }
+    } else {
+      // Revert optimistic updates on failure
+      setLocalComments(localComments);
+      setLocalPost(localPost);
+      onPostUpdate?.(localPost);
+      setNewComment(newComment); // Restore the comment text
     }
   };
 
   const handleCommentLike = async (commentId: string, isLiked: boolean) => {
     if (!profile || profile.hearts < 1) return;
     
+    // Optimistic update for comment likes
+    const updateCommentLikes = (comments: Comment[]): Comment[] => {
+      return comments.map(comment => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            user_has_liked: !isLiked,
+            likes_count: isLiked ? comment.likes_count - 1 : comment.likes_count + 1
+          };
+        }
+        if (comment.replies && comment.replies.length > 0) {
+          return {
+            ...comment,
+            replies: updateCommentLikes(comment.replies)
+          };
+        }
+        return comment;
+      });
+    };
+    
+    const optimisticComments = updateCommentLikes(localComments);
+    setLocalComments(optimisticComments);
+    
+    let success = false;
     if (isLiked) {
-      const success = await unlikeComment(commentId);
-      if (success) {
-        await loadComments();
-      }
+      success = await unlikeComment(commentId);
     } else {
-      const success = await likeComment(commentId);
-      if (success) {
-        await loadComments();
-      }
+      success = await likeComment(commentId);
+    }
+    
+    if (success) {
+      await loadComments(); // Refresh from server
+    } else {
+      // Revert on failure
+      setLocalComments(localComments);
     }
   };
 
   const loadComments = async () => {
     setLoadingComments(true);
-    const commentsData = await fetchComments(post.id);
+    const commentsData = await fetchComments(localPost.id);
     setComments(commentsData);
+    setLocalComments(commentsData);
     setLoadingComments(false);
   };
 
@@ -82,9 +166,14 @@ export const PostCard = ({ post }: PostCardProps) => {
     setShowComments(!showComments);
   };
 
+  const handleReplySubmitted = async () => {
+    setReplyingTo(null);
+    await loadComments();
+  };
+
   const canLike = profile && profile.hearts >= 1 && profile.status !== 'dead';
   const canComment = profile && profile.hearts >= 3 && profile.status !== 'dead';
-  const isOwnPost = user?.id === post.user_id;
+  const isOwnPost = user?.id === localPost.user_id;
 
   const renderComment = (comment: Comment, isReply = false) => (
     <div key={comment.id} className={`flex space-x-3 ${isReply ? 'ml-8 mt-2' : ''}`}>
@@ -116,8 +205,27 @@ export const PostCard = ({ post }: PostCardProps) => {
               <Heart className={`w-3 h-3 ${comment.user_has_liked ? 'fill-current' : ''}`} />
               <span>{comment.likes_count}</span>
             </button>
+            {!isReply && canComment && (
+              <button
+                onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+              >
+                Reply
+              </button>
+            )}
           </div>
         </div>
+        
+        {/* Reply input */}
+        {replyingTo === comment.id && (
+          <CommentReply
+            postId={localPost.id}
+            parentCommentId={comment.id}
+            onReplySubmitted={handleReplySubmitted}
+            onCancel={() => setReplyingTo(null)}
+          />
+        )}
+        
         {/* Render replies */}
         {comment.replies && comment.replies.length > 0 && (
           <div className="space-y-2">
@@ -133,27 +241,27 @@ export const PostCard = ({ post }: PostCardProps) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <span className="text-2xl">{post.profiles.avatar}</span>
+          <span className="text-2xl">{localPost.profiles.avatar}</span>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-gray-900">{post.profiles.username}</span>
-              {post.profiles.status === 'dead' && <span className="text-gray-400">💀</span>}
-              {!isOwnPost && user && <FollowButton userId={post.user_id} username={post.profiles.username} />}
+              <span className="font-semibold text-gray-900">{localPost.profiles.username}</span>
+              {localPost.profiles.status === 'dead' && <span className="text-gray-400">💀</span>}
+              {!isOwnPost && user && <FollowButton userId={localPost.user_id} username={localPost.profiles.username} />}
               <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
-                post.profiles.status === 'dead'
+                localPost.profiles.status === 'dead'
                   ? 'bg-gray-100 text-gray-500' 
-                  : post.profiles.hearts < 10
+                  : localPost.profiles.hearts < 10
                     ? 'bg-red-50 text-red-600'
                     : 'bg-pink-50 text-red-600'
               }`}>
                 <Heart className={`w-3 h-3 ${
-                  post.profiles.status === 'dead' ? 'text-gray-400' : 'text-red-500'
+                  localPost.profiles.status === 'dead' ? 'text-gray-400' : 'text-red-500'
                 }`} />
-                <span className="font-medium">{post.profiles.hearts}</span>
+                <span className="font-medium">{localPost.profiles.hearts}</span>
               </div>
             </div>
             <div className="text-xs text-gray-500">
-              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+              {formatDistanceToNow(new Date(localPost.created_at), { addSuffix: true })}
             </div>
           </div>
         </div>
@@ -161,7 +269,7 @@ export const PostCard = ({ post }: PostCardProps) => {
 
       {/* Content */}
       <div className="mb-4">
-        <p className="text-gray-900 whitespace-pre-wrap">{post.content}</p>
+        <p className="text-gray-900 whitespace-pre-wrap">{localPost.content}</p>
       </div>
 
       {/* Actions */}
@@ -170,15 +278,15 @@ export const PostCard = ({ post }: PostCardProps) => {
           onClick={handleLike}
           disabled={loading || !canLike}
           className={`flex items-center space-x-2 px-3 py-1 rounded-full transition-all ${
-            post.user_has_liked
+            localPost.user_has_liked
               ? 'bg-red-100 text-red-600'
               : canLike
               ? 'hover:bg-red-50 text-gray-600 hover:text-red-600'
               : 'text-gray-400 cursor-not-allowed'
           }`}
         >
-          <Heart className={`w-4 h-4 ${post.user_has_liked ? 'fill-current' : ''}`} />
-          <span className="text-sm font-medium">{post.likes_count}</span>
+          <Heart className={`w-4 h-4 ${localPost.user_has_liked ? 'fill-current' : ''}`} />
+          <span className="text-sm font-medium">{localPost.likes_count}</span>
         </button>
 
         <button
@@ -186,7 +294,7 @@ export const PostCard = ({ post }: PostCardProps) => {
           className="flex items-center space-x-2 px-3 py-1 rounded-full hover:bg-gray-50 text-gray-600 hover:text-blue-600 transition-all"
         >
           <MessageCircle className="w-4 h-4" />
-          <span className="text-sm font-medium">{post.comments_count}</span>
+          <span className="text-sm font-medium">{localPost.comments_count}</span>
         </button>
       </div>
 
@@ -235,10 +343,10 @@ export const PostCard = ({ post }: PostCardProps) => {
                 <div className="animate-pulse text-gray-500">Loading comments...</div>
               </div>
             ) : (
-              comments.map(comment => renderComment(comment))
+              localComments.map(comment => renderComment(comment))
             )}
             
-            {comments.length === 0 && !loadingComments && (
+            {localComments.length === 0 && !loadingComments && (
               <div className="text-center py-4 text-gray-500 text-sm">
                 No comments yet. Be the first to share your thoughts!
               </div>

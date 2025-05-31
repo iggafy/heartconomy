@@ -2,15 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { PostCard } from './PostCard';
 import { CreatePost } from './CreatePost';
-import { usePosts } from '../hooks/usePosts';
+import { usePosts, Post } from '../hooks/usePosts';
 import { useProfile } from '../hooks/useProfile';
 
 export const Feed = () => {
   const { posts, loading, fetchFollowingPosts } = usePosts();
   const { profile } = useProfile();
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'following'>('recent');
-  const [followingPosts, setFollowingPosts] = useState<any[]>([]);
+  const [followingPosts, setFollowingPosts] = useState<Post[]>([]);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [localPosts, setLocalPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    setLocalPosts(posts);
+  }, [posts]);
 
   useEffect(() => {
     if (sortBy === 'following') {
@@ -30,12 +35,28 @@ export const Feed = () => {
     }
   };
 
+  const handlePostUpdate = (updatedPost: Post) => {
+    setLocalPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === updatedPost.id ? updatedPost : post
+      )
+    );
+    
+    if (sortBy === 'following') {
+      setFollowingPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === updatedPost.id ? updatedPost : post
+        )
+      );
+    }
+  };
+
   const getDisplayPosts = () => {
     if (sortBy === 'following') {
       return followingPosts;
     }
 
-    const postsToSort = [...posts];
+    const postsToSort = [...localPosts];
     if (sortBy === 'popular') {
       return postsToSort.sort((a, b) => b.likes_count - a.likes_count);
     }
@@ -108,7 +129,7 @@ export const Feed = () => {
       {/* Posts */}
       <div className="space-y-4">
         {displayPosts.map(post => (
-          <PostCard key={post.id} post={post} />
+          <PostCard key={post.id} post={post} onPostUpdate={handlePostUpdate} />
         ))}
         
         {displayPosts.length === 0 && (

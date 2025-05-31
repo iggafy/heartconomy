@@ -17,9 +17,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { action, userId, postId, commentId, amount, content } = await req.json()
+    const { action, userId, postId, commentId, amount, content, parentCommentId } = await req.json()
     
-    console.log('Heart transaction request:', { action, userId, postId, commentId, amount, content })
+    console.log('Heart transaction request:', { action, userId, postId, commentId, amount, content, parentCommentId })
 
     // Get the current user from the authorization header
     const authHeader = req.headers.get('Authorization')
@@ -149,7 +149,8 @@ serve(async (req) => {
         .insert({
           user_id: currentUserId,
           post_id: postId,
-          content: content.trim()
+          content: content.trim(),
+          parent_comment_id: parentCommentId || null
         })
         .select()
         .single()
@@ -175,7 +176,7 @@ serve(async (req) => {
       await supabaseClient.from('activity_feed').insert({
         user_id: currentUserId,
         activity_type: 'comment_created',
-        details: { post_id: postId, comment_id: newComment.id }
+        details: { post_id: postId, comment_id: newComment.id, parent_comment_id: parentCommentId }
       })
 
       return new Response(JSON.stringify({ success: true, comment: newComment }), {

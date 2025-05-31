@@ -106,11 +106,11 @@ export function useHeartTransactions() {
     }
   };
 
-  const commentPost = async (postId: string, content: string) => {
+  const commentPost = async (postId: string, content: string, parentCommentId?: string) => {
     setLoading(true);
     try {
       const { error } = await supabase.functions.invoke('heart-transactions', {
-        body: { action: 'comment_post', postId, content }
+        body: { action: 'comment_post', postId, content, parentCommentId }
       });
 
       if (error) throw error;

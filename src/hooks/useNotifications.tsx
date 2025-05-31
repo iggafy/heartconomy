@@ -35,14 +35,45 @@ export function useNotifications() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'notifications',
           filter: `user_id=eq.${user.id}`
         },
-        () => {
-          console.log('Notifications updated, refreshing...');
-          fetchNotifications();
+        (payload) => {
+          console.log('New notification received:', payload);
+          const newNotification = payload.new as Notification;
+          setNotifications(prev => [newNotification, ...prev]);
+          setUnreadCount(prev => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Notification updated:', payload);
+          const updatedNotification = payload.new as Notification;
+          setNotifications(prev => 
+            prev.map(n => 
+              n.id === updatedNotification.id ? updatedNotification : n
+            )
+          );
+          // Recalculate unread count
+          setUnreadCount(prev => {
+            const wasRead = (payload.old as Notification).read;
+            const isRead = updatedNotification.read;
+            if (!wasRead && isRead) {
+              return Math.max(0, prev - 1);
+            } else if (wasRead && !isRead) {
+              return prev + 1;
+            }
+            return prev;
+          });
         }
       )
       .subscribe();
@@ -76,21 +107,35 @@ export function useNotifications() {
 
   const markAsRead = async (notificationId: string) => {
     try {
+      // Update local state immediately for better UX
+      const notificationToUpdate = notifications.find(n => n.id === notificationId);
+      if (notificationToUpdate && !notificationToUpdate.read) {
+        setNotifications(prev => 
+          prev.map(n => 
+            n.id === notificationId ? { ...n, read: true } : n
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
         .eq('user_id', user?.id);
 
-      if (error) throw error;
-
-      // Update local state immediately for better UX
-      setNotifications(prev => 
-        prev.map(n => 
-          n.id === notificationId ? { ...n, read: true } : n
-        )
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        // Revert local state on error
+        if (notificationToUpdate && !notificationToUpdate.read) {
+          setNotifications(prev => 
+            prev.map(n => 
+              n.id === notificationId ? { ...n, read: false } : n
+            )
+          );
+          setUnreadCount(prev => prev + 1);
+        }
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -105,19 +150,24 @@ export function useNotifications() {
       
       if (unreadNotifications.length === 0) return;
 
+      // Update local state immediately
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      );
+      setUnreadCount(0);
+
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
         .eq('read', false);
 
-      if (error) throw error;
-
-      // Update local state immediately
-      setNotifications(prev => 
-        prev.map(n => ({ ...n, read: true }))
-      );
-      setUnreadCount(0);
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        // Revert local state on error and refresh from server
+        await fetchNotifications();
+        return;
+      }
       
       console.log('Successfully marked all notifications as read');
     } catch (error) {
@@ -129,15 +179,29 @@ export function useNotifications() {
 
   const deleteNotification = async (notificationId: string) => {
     try {
+      // Update local state immediately
+      const notificationToDelete = notifications.find(n => n.id === notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      if (notificationToDelete && !notificationToDelete.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+
       const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', notificationId)
         .eq('user_id', user?.id);
 
-      if (error) throw error;
-
-      // Real-time will handle the refresh
+      if (error) {
+        console.error('Error deleting notification:', error);
+        // Revert local state on error
+        if (notificationToDelete) {
+          setNotifications(prev => [notificationToDelete, ...prev]);
+          if (!notificationToDelete.read) {
+            setUnreadCount(prev => prev + 1);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
