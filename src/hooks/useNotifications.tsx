@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -19,6 +19,8 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const hasInitiallyLoaded = useRef(false);
+  const isMarkingAllAsRead = useRef(false);
 
   useEffect(() => {
     if (user) {
@@ -43,8 +45,17 @@ export function useNotifications() {
         (payload) => {
           console.log('New notification received:', payload);
           const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
+          
+          // Only add if we haven't seen this notification before
+          setNotifications(prev => {
+            const exists = prev.some(n => n.id === newNotification.id);
+            if (exists) return prev;
+            return [newNotification, ...prev];
+          });
+          
+          if (!newNotification.read) {
+            setUnreadCount(prev => prev + 1);
+          }
         }
       )
       .on(
@@ -58,22 +69,20 @@ export function useNotifications() {
         (payload) => {
           console.log('Notification updated:', payload);
           const updatedNotification = payload.new as Notification;
+          const oldNotification = payload.old as Notification;
+          
           setNotifications(prev => 
             prev.map(n => 
               n.id === updatedNotification.id ? updatedNotification : n
             )
           );
-          // Recalculate unread count
-          setUnreadCount(prev => {
-            const wasRead = (payload.old as Notification).read;
-            const isRead = updatedNotification.read;
-            if (!wasRead && isRead) {
-              return Math.max(0, prev - 1);
-            } else if (wasRead && !isRead) {
-              return prev + 1;
-            }
-            return prev;
-          });
+          
+          // Update unread count based on read status change
+          if (!oldNotification.read && updatedNotification.read) {
+            setUnreadCount(prev => Math.max(0, prev - 1));
+          } else if (oldNotification.read && !updatedNotification.read) {
+            setUnreadCount(prev => prev + 1);
+          }
         }
       )
       .subscribe();
@@ -96,8 +105,12 @@ export function useNotifications() {
 
       if (error) throw error;
 
-      setNotifications(data || []);
-      setUnreadCount((data || []).filter(n => !n.read).length);
+      // Only update if we haven't initially loaded or if we're forcing a refresh
+      if (!hasInitiallyLoaded.current) {
+        setNotifications(data || []);
+        setUnreadCount((data || []).filter(n => !n.read).length);
+        hasInitiallyLoaded.current = true;
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -142,13 +155,18 @@ export function useNotifications() {
   };
 
   const markAllAsRead = async () => {
-    if (!user) return;
+    if (!user || isMarkingAllAsRead.current) return;
+    
+    isMarkingAllAsRead.current = true;
 
     try {
       // Get all unread notification IDs first
       const unreadNotifications = notifications.filter(n => !n.read);
       
-      if (unreadNotifications.length === 0) return;
+      if (unreadNotifications.length === 0) {
+        isMarkingAllAsRead.current = false;
+        return;
+      }
 
       // Update local state immediately
       setNotifications(prev => 
@@ -164,16 +182,30 @@ export function useNotifications() {
 
       if (error) {
         console.error('Error marking all notifications as read:', error);
-        // Revert local state on error and refresh from server
-        await fetchNotifications();
-        return;
+        // Revert local state on error
+        setNotifications(prev => 
+          prev.map(n => {
+            const wasUnread = unreadNotifications.some(un => un.id === n.id);
+            return wasUnread ? { ...n, read: false } : n;
+          })
+        );
+        setUnreadCount(unreadNotifications.length);
+      } else {
+        console.log('Successfully marked all notifications as read');
       }
-      
-      console.log('Successfully marked all notifications as read');
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      // Refresh notifications to get the latest state
-      await fetchNotifications();
+      // Revert on error
+      const unreadNotifications = notifications.filter(n => !n.read);
+      setNotifications(prev => 
+        prev.map(n => {
+          const wasUnread = unreadNotifications.some(un => un.id === n.id);
+          return wasUnread ? { ...n, read: false } : n;
+        })
+      );
+      setUnreadCount(unreadNotifications.length);
+    } finally {
+      isMarkingAllAsRead.current = false;
     }
   };
 

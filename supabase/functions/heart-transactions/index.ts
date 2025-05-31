@@ -80,7 +80,6 @@ serve(async (req) => {
         })
       }
 
-      // Create the post
       const { data: newPost, error: postError } = await supabaseClient
         .from('posts')
         .insert({
@@ -98,7 +97,6 @@ serve(async (req) => {
         })
       }
 
-      // Deduct hearts from user
       await supabaseClient
         .from('profiles')
         .update({ 
@@ -107,7 +105,6 @@ serve(async (req) => {
         })
         .eq('id', currentUserId)
 
-      // Create activity feed entry
       await supabaseClient.from('activity_feed').insert({
         user_id: currentUserId,
         activity_type: 'post_created',
@@ -143,6 +140,34 @@ serve(async (req) => {
         })
       }
 
+      let heartRecipientId = null;
+
+      // If this is a reply to a comment, get the parent comment owner
+      if (parentCommentId) {
+        const { data: parentComment, error: parentError } = await supabaseClient
+          .from('comments')
+          .select('user_id')
+          .eq('id', parentCommentId)
+          .single()
+
+        if (parentError || !parentComment) {
+          return new Response(JSON.stringify({ error: 'Parent comment not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        // Cannot reply to your own comment (no self-heart-farming)
+        if (parentComment.user_id === currentUserId) {
+          return new Response(JSON.stringify({ error: 'Cannot reply to your own comment' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        heartRecipientId = parentComment.user_id;
+      }
+
       // Create the comment
       const { data: newComment, error: commentError } = await supabaseClient
         .from('comments')
@@ -163,7 +188,7 @@ serve(async (req) => {
         })
       }
 
-      // Deduct hearts from user
+      // Deduct hearts from commenter
       await supabaseClient
         .from('profiles')
         .update({ 
@@ -172,7 +197,50 @@ serve(async (req) => {
         })
         .eq('id', currentUserId)
 
-      // Create activity feed entry
+      // If this is a reply, give hearts to the parent comment owner
+      if (heartRecipientId) {
+        const { data: recipientProfile } = await supabaseClient
+          .from('profiles')
+          .select('hearts, total_hearts_earned, username')
+          .eq('id', heartRecipientId)
+          .single()
+
+        if (recipientProfile) {
+          // Give 3 hearts to the parent comment owner
+          await supabaseClient
+            .from('profiles')
+            .update({ 
+              hearts: recipientProfile.hearts + 3,
+              total_hearts_earned: recipientProfile.total_hearts_earned + 3
+            })
+            .eq('id', heartRecipientId)
+
+          // Create activity feed entries for the heart transfer
+          await supabaseClient.from('activity_feed').insert([
+            {
+              user_id: currentUserId,
+              activity_type: 'reply_hearts_sent',
+              details: { comment_id: newComment.id, recipient_id: heartRecipientId, hearts_sent: 3 }
+            },
+            {
+              user_id: heartRecipientId,
+              activity_type: 'reply_hearts_received',
+              details: { comment_id: newComment.id, giver_id: currentUserId, hearts_received: 3 }
+            }
+          ])
+
+          // Create notification for the heart recipient
+          await supabaseClient.from('notifications').insert({
+            user_id: heartRecipientId,
+            type: 'reply_hearts',
+            title: 'Hearts received from reply!',
+            message: `${currentProfile.username} replied to your comment and you received 3 hearts!`,
+            data: { giver_id: currentUserId, hearts_received: 3, comment_id: newComment.id }
+          })
+        }
+      }
+
+      // Create activity feed entry for comment creation
       await supabaseClient.from('activity_feed').insert({
         user_id: currentUserId,
         activity_type: 'comment_created',
